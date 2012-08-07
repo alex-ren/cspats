@@ -1,0 +1,62 @@
+===================
+README for ATM demo
+===================
+
+This demo implements an Automated Teller Machine (ATM). The code for this ATM system comes from 3 main sources: atm.csp, atmprocs.cc, and bank.cc.
+
+atm.csp is where the backbone of the ATM is specified. It is translated into atm.cc that is linked with user-coded functions in atmprocs.cc
+
+atmprocs.cc is how the ATM interfaces with its environment. It allows user input, displays output, and communicates through UDP sockets with bank.cc
+
+bank.cc is not part of the ATM but is an important part of the overall system. The ATM sends requests to the bank that need to be handled by translating them into queries that can be checked against the database and updating the database accordingly.
+
+The demo is fragile. If values are entered that are not supported by the CSP specification, the consequences are undefined. Also, the protocol for handling errors in the network communication are not sophisticated and errors may result. If you get a message from the bank program "bad mysql read", check to make sure you are using the ClientID and PIN set up in your database.
+
+=====================
+Setting up the System
+=====================
+
+You may need to adjust atmprocs.cc and bank.cc to suit your system configuration in regards to IP addresses, mysql users/password/databases/etc.
+
+The following "root"-user mysql table "CA" (short for client account) in the "mydb" database is assumed to be established when the system is started. 
+
++----------+---------+------+-----+---------+-------+
+| Field    | Type    | Null | Key | Default | Extra |
++----------+---------+------+-----+---------+-------+
+| ClientID | int(11) |      | PRI | 0       |       |
+| Card     | int(11) |      |     | 0       |       |
+| PIN      | int(11) |      |     | 0       |       |
+| Checking | int(11) |      |     | 0       |       |
+| Savings  | int(11) |      |     | 0       |       |
++----------+---------+------+-----+---------+-------+
+
+It can be created using the following command: 
+
+> create database mydb;
+
+> use mydb;
+
+> create table CA( ClientID int(11) not null primary key,Card int(11) not null, PIN int(11) not null, Checking int(11) not null, Savings int(11) not null);
+
+..and populated with the following command (gives the person with Client #1 with Card #1 and PIN #1, 5 dollars in their Checking and Savings accounts):
+
+> insert into CA(ClientID,Card,PIN,Checking,Savings) values(1,1,1,5,5);
+
+The atm program must be built (recommend Makefile) and the bank program must be created using the command at the top of the bank.cc file.
+
+Now you can run the system.
+
+==================
+Running the System
+==================
+
+Open two terminal windows
+Run 'bank' in one
+Run 'atm -t -i' in the other
+Follow the instructions of the ATM system and press CTRL-C to exit each program
+
+=========
+Questions
+=========
+
+Contact Bill Gardner at wgardner@cis.uoguelph.ca

@@ -1,0 +1,99 @@
+-- This is the "real" Disk Server, with simulated clients.  The Disk
+-- process is commented out in DSS since its actions are performed by UCFs.
+-- Note, it does no harm to leave the Disk process defined.
+
+-- CSP++ V3.1: "left" and "right" collide with std::, so rename
+-- CSP++ V4.0: CSPm version
+-- CSP++ V4.1: separated 'client-no' range from 'block' range in channel
+-- declaration. Explicitly wrote out variables for the 2 parights of the 
+-- items used in the queue. List ack in closure set instead of explicitly
+-- writing ack.1 and ack.2. NOTE: DSS is still not deadlock free according
+-- to FDR2 (since it terminates)
+-- CSP++ V4.2: std:: no longer used, so go back to left/right
+
+
+channel dio: {0..3}
+channel ack: {1..2}
+channel shift, deq, empty, moreone, moretwo, dint
+channel ds,dco,dci,enq,next,left,right, comm: {1..2}.{0..3}
+
+--============================
+-- DQueue:  disk request queue
+--
+-- Interface:
+--	enq!<item>	enqueue item
+--	deq		dequeue item, followed by:
+--	  next?x	  next item returned, or
+--	  empty		  empty queue indication
+--============================
+
+CELL = left?x.y -> shift -> right!x.y -> CELL
+
+BUFF = ((CELL[[right<-comm]]) [|{|comm|}|] (CELL[[left<-comm]])) \ {|comm|}
+
+DQueue = (DQ(0) [|{|left, right, shift|}|] BUFF) \ {|left, right, shift|}
+
+DQ(2) = deq -> shift -> X(2)
+
+DQ(i) = enq?x.y -> ( left!x.y -> shift-> DQ(i+1) )
+	   [] deq -> ( 	if (i==0) then empty -> DQ(0) 
+			else X(i)
+		    )
+
+X(i) = right?y.z -> ( next!y.z -> DQ(i-1) )
+     [] shift -> X(i)
+
+--============================
+-- DCtrl:  disk controller
+--
+-- Interface:
+--	dci!cl.blk	staright operation on block <blk> for client <cl>
+--	dco?cl.blk	operation finished
+--============================
+
+DCtrl = dci?i.blk -> dio!blk -> dint -> dco!i.blk -> DCtrl
+
+--============================
+-- Disk:  disk drive (simulated)
+--
+-- Interface:
+--	dio!blk		perform disk i/o on block blk
+--	dint		disk interrupt signalled
+--============================
+
+-- Disk =  dio?blk -> dint -> Disk
+
+--============================
+-- DSched:  disk scheduler
+--
+-- Interface:
+--	ds!cl.blk	client <cl> requests operation on block <blk> 
+--	ack.cl		client's operation finished
+--============================
+
+DSched = DS_idle
+
+DS_idle = ds?cl.blk -> dci!cl.blk -> DS_busy
+
+DS_busy = dco?cl.blk -> ( ack.cl -> DS_check )
+	    [] ds?cl.blk -> enq!cl.blk -> DS_busy
+
+DS_check = deq -> ( empty -> DS_idle
+		     [] next?cl.blk -> dci!cl.blk -> DS_busy )
+--============================
+-- DSS:  disk server subsystem
+--
+-- Interface: (see DSched)
+--============================
+
+DSS = (DSched [|{|enq,deq,next,empty|}|] DQueue) [|{|dci,dco|}|] DCtrl
+
+SYS = DSS [|{|ds,ack|}|] (C(1)|||C(2)) 
+
+--============================
+-- Demo
+--============================
+
+C(1) = ds!1.2 -> moreone -> ack.1->SKIP
+
+C(2) = ds!2.3 -> moretwo -> ack.2->SKIP

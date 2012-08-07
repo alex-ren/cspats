@@ -337,7 +337,7 @@ absview selector
 **       that one read/sync must be done.
 ** Note: No error is returned. If error occurrs, the program terminates.
 *)
-fun alternative_2 (g1: alt, g2: alt):<fun1> 
+fun alternative_2 (g1: !alt, g2: !alt):<fun1> 
   [e:int | e==1 || e==2] (selector | int e) =
   "mac#atslib_cspats_alternative_2"
  

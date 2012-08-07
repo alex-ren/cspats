@@ -1,106 +1,127 @@
 
-staload "contrib/cspats/SATS/atscsp.sats"
+staload "contrib/cspats/SATS/cspats.sats"
 
 
 
 
 
+(*
 absviewtype Int (int)
 viewtypedef Int = [x: int] Int x
 extern fun eq_Int_int {x, y: int} (x: !Int x, y: int y): bool (x == y)
 extern fun release_Int (x: Int): void
+*)
+
+(* ************ ************** *)
 
 absviewtype req (int, int)
 viewtypedef req = [cl: nat] [blk: nat] req (cl, blk)
 extern fun create_req {cl,blk: nat} (cl: int cl, blk: int blk): req (cl, blk)
 extern fun release_req (req: req): void
-extern fun req_x {x,y: int} (req: !req (x, y)): Int x
-extern fun req_y {x,y: int} (req: !req (x, y)): Int y
+extern fun req_x {x,y: int} (req: !req (x, y)): int x
+extern fun req_y {x,y: int} (req: !req (x, y)): int y
 
-extern fun CELL (left: chin (req)(*{1..2}.{0..3}*), shift: event, right: chout (req)): void
+extern fun CELL (
+  left: one2one_chan_in (req)(*{1..2}.{0..3}*), 
+  shift: barrier2, 
+  right: one2one_chan_out (req)
+  ): void
 
 
 // CSP: CELL = left?x.y -> shift -> right!x.y -> CELL
 implement CELL (left, shift, right) = let
-  val req = read (left)
-  val () = sync (shift)
-  val () = write (right, req)
+  var req: req?
+  val () = one2one_chan_in_read (left, req)
+  val () = barrier2_sync (shift)
+  val () = one2one_chan_out_write (right, req)
 in
   CELL (left, shift, right)
 end
 
-fun CELL_proc (left: chin (req), shift: event, right: chout (req)): process = lam () =<lin, cloptr1>
-  CELL (left, shift, right)
+fun CELL_proc (
+  left: one2one_chan_in (req), 
+  shift: barrier2, 
+  right: one2one_chan_out (req)): process = 
+  lam () =<lin, cloptr1> CELL (left, shift, right)
 
-extern fun BUFF (left: chin (req), shift: event, right: chout (req)): void
+(* ************ ************** *)
+
+extern fun BUFF (
+  left: one2one_chan_in (req), 
+  shift: barrier2, 
+  right: one2one_chan_out (req)): void
 
 // CSP: BUFF = ((CELL[[right<-comm]]) [|{|comm|}|] (CELL[[left<-comm]])) \ {|comm|}
 implement BUFF (left, shift, right) = let
-  val comm = create_one_one_channel {req} ()
-  val+~ Pair (comm_in, comm_out) = comm
+  val comm = one2one_chan_create {req} ()
+  val+~ one2one_pair (comm_in, comm_out) = comm
 
-  val shift2 = copy_event (shift)
+  val shift2 = barrier2_ref (shift)
   val p1 = CELL_proc (left, shift, comm_out)
   val p2 = CELL_proc (comm_in, shift2, right)
 
-  val p = par_process (p1, p2)
+  val () = para_run2 (p1, p2)
 in
-  run p
+  ()
 end
 
-fun BUFF_proc (left: chin (req), shift: event, right: chout (req)): process =
+fun BUFF_proc (
+  left: one2one_chan_in (req), 
+  shift: barrier2, right: 
+  one2one_chan_out (req)): process =
   lam () =<lin, cloptr1> BUFF (left, shift, right)
  
+(* ************ ************** *)
 
 // CSP: DQ(2) = deq -> shift -> X(2)
-fun DQ_2 (enq: chin (req),
-                 deq: event, 
-                 shift: event,
-                 empty: event,
-                 left: chout (req),
-                 right: chin (req),
-                 next: chout (req)
+fun DQ_2 (enq: one2one_chan_in (req),
+                 deq: barrier2, 
+                 shift: barrier2,
+                 empty: barrier2,
+                 left: one2one_chan_out (req),
+                 right: one2one_chan_in (req),
+                 next: one2one_chan_out (req)
                  ): void = let
-  val () = sync (deq)
-  val () = sync (shift)
+  val () = barrier2_sync (deq)
+  val () = barrier2_sync (shift)
 in
   X_i (2, enq, deq, shift, empty, left, right, next)
 end
-
 
 // CSP: DQ(i) = enq?x.y -> ( left!x.y -> shift-> DQ(i+1) )
 //   [] deq -> ( 	if (i==0) then empty -> DQ(0) 
 //			else X(i)
 //		    )
 and DQ_i {i: nat | i < 2} (i: int i,
-                 enq: chin (req),
-                 deq: event, 
-                 shift: event,
-                 empty: event,
-                 left: chout (req),
-                 right: chin (req),
-                 next: chout (req)
+                 enq: one2one_chan_in (req),
+                 deq: barrier2, 
+                 shift: barrier2,
+                 empty: barrier2,
+                 left: one2one_chan_out (req),
+                 right: one2one_chan_in (req),
+                 next: one2one_chan_out (req)
                  ): void = let
-  val (res_enq | ()) = ch2guard (enq)
-  val (res_deq | ()) = event2guard (deq)
+  prval (res_enq | ()) = one2one_chan_in_2_alt (enq)
+  prval (res_deq | ()) = barrier2_2_alt (deq)
 
-  val [z: int] (pf_sel | ret) = guard_select2 (enq, deq)
+  val [z: int] (pf_sel | ret) = alternative_2 (enq, deq)
 in
-  if guard_match (enq, ret) then let
-    val req = guard_read (pf_sel, res_enq | enq)
-    val () = guard2event (res_deq | deq)
+  if ret = 1 then let
+    var req: req?
+    val () = alt_one2one_chan_in_read (pf_sel, res_enq | enq, req)
+    val () = alt_2_barrier2 (res_deq | deq)
 
-    val () = write (left, req)
-    val () = sync (shift)
+    val () = one2one_chan_out_write (left, req)
+    val () = barrier2_sync (shift)
   in
     if i = 0 then DQ_i (1, enq, deq, shift, empty, left, right, next)
     else DQ_2 (enq, deq, shift, empty, left, right, next)
   end else let
-    val () = guard_sync (pf_sel, res_deq | deq)
-    val () = guard2ch (res_enq | enq) 
+    val () = alt_barrier2_sync (pf_sel, res_deq | deq)
+    prval () = alt_2_one2one_chan_in (res_enq | enq) 
   in
     if i = 0 then let
-      val () = sync (empty)
+      val () = barrier2_sync (empty)
     in
       DQ_i (0, enq, deq, shift, empty, left, right, next)
     end else
@@ -111,58 +132,63 @@ end
 // CSP: X(i) = right?y.z -> ( next!y.z -> DQ(i-1) )
 //     [] shift -> X(i)
 and X_i {i: pos | i <= 2} (i: int i,
-                 enq: chin (req),
-                 deq: event, 
-                 shift: event,
-                 empty: event,
-                 left: chout (req),
-                 right: chin (req),
-                 next: chout (req)
+                 enq: one2one_chan_in (req),
+                 deq: barrier2, 
+                 shift: barrier2,
+                 empty: barrier2,
+                 left: one2one_chan_out (req),
+                 right: one2one_chan_in (req),
+                 next: one2one_chan_out (req)
                  ): void = let
-  val (res_right | ()) = ch2guard (right)
-  val (res_shift | ()) = event2guard (shift)
-  val (pf_sel | ret) = guard_select2 (right, shift)
+  val (res_right | ()) = one2one_chan_in_2_alt (right)
+  val (res_shift | ()) = barrier2_2_alt (shift)
+  val (pf_sel | ret) = alternative_2 (right, shift)
 in
-  if guard_match (right, ret) then let
-    val req = guard_read (pf_sel, res_right | right)
-    val () = guard2event (res_shift | shift)
+  if ret = 1 then let
+    var req: req?
+    val () = alt_one2one_chan_in_read (pf_sel, res_right | right, req)
+    val () = alt_2_barrier2 (res_shift | shift)
 
-    val () = write (next, req)
+    val () = one2one_chan_out_write (next, req)
   in
     DQ_i (i - 1, enq, deq, shift, empty, left, right, next)
   end else let
-    val () = guard_sync (pf_sel, res_shift | shift)
-    val () = guard2ch (res_right | right)
+    val () = alt_barrier2_sync (pf_sel, res_shift | shift)
+    prval () = alt_2_one2one_chan_in (res_right | right)
   in
     X_i (i, enq, deq, shift, empty, left, right, next)
   end
 end
 
+////
+
 fun DQ_0_proc (
-                 enq: chin (req),
-                 deq: event, 
-                 shift: event,
-                 empty: event,
-                 left: chout (req),
-                 right: chin (req),
-                 next: chout (req)
+                 enq: one2one_chan_in (req),
+                 deq: barrier2, 
+                 shift: barrier2,
+                 empty: barrier2,
+                 left: one2one_chan_out (req),
+                 right: one2one_chan_in (req),
+                 next: one2one_chan_out (req)
                  ): process =
   lam () =<lin, cloptr1> DQ_i (0, enq, deq, shift, empty, left, right, next)
 
+(* ************ ************** *)
+
 // CSP: DQueue = (DQ(0) [|{|left, right, shift|}|] BUFF) \ {|left, right, shift|}
-fun DQueue (enq: chin (req),
-                 deq: event, 
-                 empty: event,
-                 next: chout (req)
+fun DQueue (enq: one2one_chan_in (req),
+                 deq: barrier2, 
+                 empty: barrier2,
+                 next: one2one_chan_out (req)
                  ): void = let
-  val left = create_one_one_channel {req} ()
+  val left = one2one_chan_create {req} ()
   val+~ Pair (left_in, left_out) = left
 
-  val right = create_one_one_channel {req} ()
+  val right = one2one_chan_create {req} ()
   val+~ Pair (right_in, right_out) = right
 
-  val shift1 = create_event ()
-  val shift2 = copy_event (shift1)
+  val shift1 = create_barrier2 ()
+  val shift2 = copy_barrier2 (shift1)
 
   val PROC_DQ_0 = DQ_0_proc (enq, deq, shift1, empty, left_out, right_in, next)
   val PROC_BUFF = BUFF_proc (left_in, shift2, right_out)
@@ -172,93 +198,99 @@ in
   run p
 end
 
-fun DQueue_proc (enq: chin (req),
-                 deq: event, 
-                 empty: event,
-                 next: chout (req)
+fun DQueue_proc (enq: one2one_chan_in (req),
+                 deq: barrier2, 
+                 empty: barrier2,
+                 next: one2one_chan_out (req)
                  ): process = 
   lam () =<lin, cloptr1> DQueue (enq, deq, empty, next)
 
+(* ************ ************** *)
+
 // CSP: DCtrl = dci?i.blk -> dio!blk -> dint -> dco!i.blk -> DCtrl
-extern fun DCtrl (dci: chin (req), 
-                  dio: chout (Int), 
-                  dint: event,
-                  dco: chout (req)
+extern fun DCtrl (dci: one2one_chan_in (req), 
+                  dio: one2one_chan_out (Int), 
+                  dint: barrier2,
+                  dco: one2one_chan_out (req)
                   ): void
 
 implement DCtrl (dci, dio, dint, dco) = let
-  val req = read (dci)
+  val req = one2one_chan_in_read (dci)
   val blk = req_y (req)
-  val () = write (dio, blk)
-  val () = sync (dint)
-  val () = write (dco, req)
+  val () = one2one_chan_out_write (dio, blk)
+  val () = barrier2_sync (dint)
+  val () = one2one_chan_out_write (dco, req)
 in
   DCtrl (dci, dio, dint, dco)
 end
 
-fun DCtrl_proc (dci: chin (req), 
-                  dio: chout (Int), 
-                  dint: event,
-                  dco: chout (req)
+fun DCtrl_proc (dci: one2one_chan_in (req), 
+                  dio: one2one_chan_out (Int), 
+                  dint: barrier2,
+                  dco: one2one_chan_out (req)
                   ): process =
   lam () =<lin, cloptr1> DCtrl (dci, dio, dint, dco)
 
+(* ************ ************** *)
+
 // CSP: Disk =  dio?blk -> dint -> Disk
-extern fun Disk (dio: chin (Int), dint: event): void
+extern fun Disk (dio: one2one_chan_in (Int), dint: barrier2): void
 implement Disk (dio, dint) = let
-  val blk = read (dio)
+  val blk = one2one_chan_in_read (dio)
   val () = release_Int (blk)
-  val () = sync (dint)
+  val () = barrier2_sync (dint)
 in
   Disk (dio, dint)
 end
 
-fun Disk_proc (dio: chin (Int), dint: event): process =
+fun Disk_proc (dio: one2one_chan_in (Int), dint: barrier2): process =
   lam () =<lin, cloptr1> Disk (dio, dint)
 
+(* ************ ************** *)
+
 // CSP: DS_idle = ds?cl.blk -> dci!cl.blk -> DS_busy
-fun DS_idle (ds: chin (req), 
-             dci: chout (req),
-             dco: chin req, 
-             ack: chout Int,
-             enq: chout req,
-             deq: event,
-             empty: event,
-             next: chin (req)
+fun DS_idle (ds: one2one_chan_in (req), 
+             dci: one2one_chan_out (req),
+             dco: one2one_chan_in req, 
+             ack: one2one_chan_out Int,
+             enq: one2one_chan_out req,
+             deq: barrier2,
+             empty: barrier2,
+             next: one2one_chan_in (req)
             ): void = let
-  val req = read (ds)
-  val () = write (dci, req)
+  val req = one2one_chan_in_read (ds)
+  val () = one2one_chan_out_write (dci, req)
 in
   DS_busy (ds, dci, dco, ack, enq, deq, empty, next)
 end
 
 // CSP: DS_busy = dco?cl.blk -> ( ack.cl -> DS_check )
 //	    [] ds?cl.blk -> enq!cl.blk -> DS_busy
-and DS_busy (ds: chin req,
-             dci: chout (req),
-             dco: chin req, 
-             ack: chout Int,
-             enq: chout req,
-             deq: event,
-             empty: event,
-             next: chin (req)
+and DS_busy (ds: one2one_chan_in req,
+             dci: one2one_chan_out (req),
+             dco: one2one_chan_in req, 
+             ack: one2one_chan_out Int,
+             enq: one2one_chan_out req,
+             deq: barrier2,
+             empty: barrier2,
+             next: one2one_chan_in (req)
              ): void = let
   val (res_dco | ()) = ch2guard (dco)
   val (res_ds | ()) = ch2guard (ds)
   val (pf_sel | ret) = guard_select2 (dco, ds)
 in
   if guard_match (dco, ret) then let
-    val req = guard_read (pf_sel, res_dco | dco)
+    val req = guard_one2one_chan_in_read (pf_sel, res_dco | dco)
     val () = guard2ch (res_ds | ds)
     val cl = req_x (req)
     val () = release_req (req)
-    val () = write (ack, cl)
+    val () = one2one_chan_out_write (ack, cl)
   in
     DS_check (ds, dci, dco, ack, enq, deq, empty, next)
   end else let
-    val req = guard_read (pf_sel, res_ds | ds)
+    val req = guard_one2one_chan_in_read (pf_sel, res_ds | ds)
     val () = guard2ch (res_dco | dco)
-    val () = write (enq, req)
+    val () = one2one_chan_out_write (enq, req)
   in
     DS_busy (ds, dci, dco, ack, enq, deq, empty, next)
   end
@@ -266,77 +298,81 @@ end
 
 // CSP: DS_check = deq -> ( empty -> DS_idle
 //		     [] next?cl.blk -> dci!cl.blk -> DS_busy )
-and DS_check (ds: chin req,
-             dci: chout (req),
-             dco: chin req, 
-             ack: chout Int,
-             enq: chout req,
-             deq: event,
-             empty: event,
-             next: chin (req)
+and DS_check (ds: one2one_chan_in req,
+             dci: one2one_chan_out (req),
+             dco: one2one_chan_in req, 
+             ack: one2one_chan_out Int,
+             enq: one2one_chan_out req,
+             deq: barrier2,
+             empty: barrier2,
+             next: one2one_chan_in (req)
              ): void = let
-  val () = sync (deq)
-  val (res_empty | ()) = event2guard (empty)
+  val () = barrier2_sync (deq)
+  val (res_empty | ()) = barrier22guard (empty)
   val (res_next | ()) = ch2guard (next)
   val (pf_sel | ret) = guard_select2 (empty, next)
 in
   if guard_match (empty, ret) then let
-    val () = guard_sync (pf_sel, res_empty | empty)
+    val () = guard_barrier2_sync (pf_sel, res_empty | empty)
     val () = guard2ch (res_next | next)
   in
     DS_idle (ds, dci, dco, ack, enq, deq, empty, next)
   end else let
-    val req = guard_read (pf_sel, res_next | next)
-    val () = guard2event (res_empty | empty)
-    val () = write (dci, req)
+    val req = guard_one2one_chan_in_read (pf_sel, res_next | next)
+    val () = guard2barrier2 (res_empty | empty)
+    val () = one2one_chan_out_write (dci, req)
   in
     DS_busy (ds, dci, dco, ack, enq, deq, empty, next)
   end
 end
     
+(* ************ ************** *)
+
 // CSP: DSched = DS_idle
 val DSched = DS_idle
-fun DSched_proc (ds: chin req,
-             dci: chout (req),
-             dco: chin req, 
-             ack: chout Int,
-             enq: chout req,
-             deq: event,
-             empty: event,
-             next: chin (req)
+fun DSched_proc (ds: one2one_chan_in req,
+             dci: one2one_chan_out (req),
+             dco: one2one_chan_in req, 
+             ack: one2one_chan_out Int,
+             enq: one2one_chan_out req,
+             deq: barrier2,
+             empty: barrier2,
+             next: one2one_chan_in (req)
              ): process =
   lam () =<lin, cloptr1> DSched (ds, dci, dco, ack, enq, deq, empty, next)
 
 // CSP: DSS = (DSched [|{|enq,deq,next,empty|}|] DQueue)
 // 	[|{|dci,dco|}|]
 //       (DCtrl [|{|dio,dint|}|] Disk)
-extern fun DSS (ds: chin req,
-                ack: chout Int
+extern fun DSS (ds: one2one_chan_in req,
+                ack: one2one_chan_out Int
                ): void
 
-fun DSS_proc (ds: chin req,
-                ack: chout Int
+(* ************ ************** *)
+
+fun DSS_proc (ds: one2one_chan_in req,
+                ack: one2one_chan_out Int
                ): process =
   lam () =<lin, cloptr1> DSS (ds, ack)
 
 implement DSS (ds, ack) = let
-  val+~ Pair(enq_in, enq_out) = create_one_one_channel {req} ()
+  val+~ Pair(enq_in, enq_out) = one2one_chan_create {req} ()
 
-  val deq1 = create_event ()
-  val deq2 = copy_event (deq1)
+  val deq1 = create_barrier2 ()
+  val deq2 = copy_barrier2 (deq1)
 
-  val+~ Pair(next_in, next_out) = create_one_one_channel {req} ()
+  val+~ Pair(next_in, next_out) = one2one_chan_create {req} ()
   
-  val empty1 = create_event ()
-  val empty2 = copy_event (empty1)
+  val empty1 = create_barrier2 ()
+  val empty2 = copy_barrier2 (empty1)
   
-  val+~ Pair(dci_in, dci_out) = create_one_one_channel {req} ()
-  val+~ Pair(dco_in, dco_out) = create_one_one_channel {req} ()
+  val+~ Pair(dci_in, dci_out) = one2one_chan_create {req} ()
+  val+~ Pair(dco_in, dco_out) = one2one_chan_create {req} ()
 
-  val+~ Pair(dio_in, dio_out) = create_one_one_channel {Int} ()
+  val+~ Pair(dio_in, dio_out) = one2one_chan_create {Int} ()
 
-  val dint1 = create_event ()
-  val dint2 = copy_event (dint1)
+  val dint1 = create_barrier2 ()
+  val dint2 = copy_barrier2 (dint1)
 
   val p1 = DSched_proc (ds, dci_out, dco_in, ack, enq_out, deq2, empty1, next_in)
   val p2 = DQueue_proc (enq_in, deq1, empty2, next_out)
@@ -351,26 +387,27 @@ in
   run p
 end
 
+(* ************ ************** *)
 
 // CSP: C(i) = ds!i.1 -> moreone -> ack.i->SKIP
 extern fun C_i {i: nat} (i: int i,
-                  ds: chout req,
-                  ack: chin Int
+                  ds: one2one_chan_out req,
+                  ack: one2one_chan_in Int
                   ): void
 
 implement C_i {i} (i, ds, ack) = let
   val req = create_req (i, 2)
-  val () = write (ds, req)
+  val () = one2one_chan_out_write (ds, req)
 
   // something like moreone
   val () = printf ("This is C_%d\n", @(i))
 
   fun cmp (n: !Int): bool = eq_Int_int (n, i)
-  val cl_no = read_guard {Int} (ack, cmp)
+  val cl_no = one2one_chan_in_read_guard {Int} (ack, cmp)
 
   val () = release_Int (cl_no)
-  val () = chout_destroy (ds)
-  val () = chin_destroy (ack)
+  val () = one2one_chan_out_destroy (ds)
+  val () = one2one_chan_in_destroy (ack)
 in end
 
 

@@ -54,8 +54,8 @@
 sortdef vtp = viewtype
 sortdef vt0p = viewt@ype
 
-absviewtype // viewt@ype+: covariant
-  one2one_chan_in_vt0ype_int (a:viewt@ype+, tag:int)
+absviewtype // viewt@ype: invariant
+  one2one_chan_in_vt0ype_int (a:viewt@ype, tag:int)
 
 stadef one2one_chan_in = one2one_chan_in_vt0ype_int
 
@@ -63,8 +63,8 @@ viewtypedef one2one_chan_in (a: vt0p) = [tag:int] one2one_chan_in (a, tag)
 
 (* ****** ****** *)
 
-absviewtype // viewt@ype+: covariant
-  one2one_chan_out_vt0ype_int (a:viewt@ype+, tag:int)
+absviewtype // viewt@ype: invariant
+  one2one_chan_out_vt0ype_int (a:viewt@ype, tag:int)
 
 stadef one2one_chan_out = one2one_chan_out_vt0ype_int
 
@@ -72,8 +72,8 @@ viewtypedef one2one_chan_out (a: vt0p) = [tag:int] one2one_chan_out (a, tag)
 
 (* ****** ****** *)
 
-dataviewtype // viewt@ype+: covariant
-  one2one_chan_vt0ype_int (a:viewt@ype+, int) = 
+dataviewtype // viewt@ype: invariant
+  one2one_chan_vt0ype_int (a:viewt@ype, int) = 
 | {tag:int} one2one_pair (a, tag) of (
   one2one_chan_in (a, tag), one2one_chan_out (a, tag))
 // end of [one2one_chan_vt0ype_int]
@@ -136,8 +136,8 @@ overload << with one2one_chan_out_write
 
 (* ****** ****** *)
 
-absviewtype // viewt@ype+: covariant
-  many2one_chan_in_vt0ype_int (a:viewt@ype+, tag:int)
+absviewtype // viewt@ype: invariant
+  many2one_chan_in_vt0ype_int (a:viewt@ype, tag:int)
 
 stadef many2one_chan_in = many2one_chan_in_vt0ype_int
 
@@ -145,8 +145,8 @@ viewtypedef many2one_chan_in (a: viewt@ype) = [tag:int] many2one_chan_in (a, tag
 
 (* ****** ****** *)
 
-absviewtype // viewt@ype+: covariant
-  many2one_chan_out_vt0ype_int (a:viewt@ype+, tag:int)
+absviewtype // viewt@ype: invariant
+  many2one_chan_out_vt0ype_int (a:viewt@ype, tag:int)
 
 stadef many2one_chan_out = many2one_chan_out_vt0ype_int
 
@@ -154,8 +154,8 @@ viewtypedef many2one_chan_out (a: vt0p) = [tag:int] many2one_chan_out (a, tag)
 
 (* ****** ****** *)
 
-dataviewtype // viewt@ype+: covariant
-  many2one_chan_vt0ype_int (a:viewt@ype+, int) = 
+dataviewtype // viewt@ype: invariant
+  many2one_chan_vt0ype_int (a:viewt@ype, int) = 
 | {tag:int} many2one_pair (a, tag) of (
   many2one_chan_in (a, tag), many2one_chan_out (a, tag))
 // end of [many2one_chan_vt0ype_int]
@@ -266,7 +266,7 @@ viewtypedef alt = [tag:int] alt (tag)
 (* ****** ****** *)
 
 absview
-  one2one_chan_res_vt0yp_int (a: viewt@ype+, tag: int)
+  one2one_chan_res_vt0yp_int (a: viewt@ype, tag: int)
 stadef one2one_chan_in_res = one2one_chan_res_vt0yp_int
 
 prfun one2one_chan_in_2_alt {a:vt0p}{tag:int} (
@@ -281,7 +281,7 @@ prfun alt_2_one2one_chan_in {a:vt0p}{tag:int} (
 (* ****** ****** *)
 
 absview
-  many2one_chan_res_vt0yp_int (a: viewt@ype+, tag: int)
+  many2one_chan_res_vt0yp_int (a: viewt@ype, tag: int)
 stadef many2one_chan_in_res = many2one_chan_res_vt0yp_int
 
 prfun many2one_chan_in_2_alt {a:vt0p}{tag:int} (
@@ -301,7 +301,7 @@ stadef barrier2_res = barrier2_res_int
 
 prfun barrier2_2_alt {tag:int} (
   bar: !barrier2 (tag) >> alt (tag)
-  ): (barrier2 (tag) | void)
+  ): (barrier2_res (tag) | void)
 
 prfun alt_2_barrier2 {tag:int} (
   pf_res: barrier2_res (tag)
@@ -337,8 +337,8 @@ absview selector
 **       that one read/sync must be done.
 ** Note: No error is returned. If error occurrs, the program terminates.
 *)
-fun alternative_2 (g1: !alt, g2: !alt):<fun1> 
-  [e:int | e==1 || e==2] (selector | int e) =
+fun alternative_2 {t1,t2:int} (g1: !alt t1, g2: !alt t2):<fun1> 
+   (selector | intBtwe (0,1)) =
   "mac#atslib_cspats_alternative_2"
  
 
@@ -381,7 +381,7 @@ fun alt_barrier2_sync {tag:int} (
 viewtypedef process = (() -<lin,cloptr1> void)
 
 fun para_run2 (p1: process, p2: process):<fun1> void
-fun para_run4 (p1: process, p2: process):<fun1> void
+fun para_run4 (p1: process, p2: process, p3: process, p4: process):<fun1> void
 
 
 

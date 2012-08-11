@@ -1,27 +1,19 @@
-CC = gcc
-CPP = g++
-
-
-MODULES = cspats_lib.o cspats.o
 
 
 .PHONY: all
-all: $(MODULES)
+all:
 
-cspats_lib.o: cspats_lib.cpp cspats_lib.h
-	$(CPP) -o $@ -c $<
+include module.mk
 
-cspats.o: cspats.cpp cspats.h cspats_lib.h
-	$(CPP) -o $@ -c $<
+ROOT := ../../../
 
-test: $(MODULES) test.c
-	$(CC) -o $@ test.c cspats_lib.o cspats.o \
-common/ec.o common/logf.o common/syserr.o \
--pthread -lstdc++
+all: 
+	$(MAKE) --directory=$(ROOT) cspcpp_lib
 
 .PHONY: clean
 clean:
-	rm -rf *.o
-	rm -rf test
+	$(MAKE) --directory=$(ROOT) clean
+
+
 
 

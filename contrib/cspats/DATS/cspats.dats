@@ -40,7 +40,7 @@
 
 #define ATS_DYNLOADFLAG 0  // no need for dynamic loading
 
-staload "contrib/cspats/SATS/cspats.sats"
+staload "cspats.sats"
 
 %{^  // Embedded in the beginning of the generated file.
 

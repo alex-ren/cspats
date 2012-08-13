@@ -148,6 +148,36 @@ int alternative_2(alt_ptr g1, alt_ptr g2)
     return p->select();
 }
 
+/* *************** ********************* */
+
+void run_proc(pthread_t * pid, void *(*start_routine)(void *), void *arg)
+{
+    int ret = 0;
+    ec_rv_fatal( ret = run_proc_error(pid, start_routine, arg) )
+    return;
+}
+
+int run_proc_error(pthread_t * pid, void *(*start_routine)(void *), void *arg)
+{
+    return pthread_create(pid, NULL, start_routine, arg);
+}
+    
+void wait_proc(pthread_t pid, void **retval)
+{
+    int ret = 0;
+    ec_rv_fatal( ret = wait_proc_error(pid, retval) )
+    return;
+}
+
+int wait_proc_error(pthread_t pid, void **retval)
+{
+    return pthread_join(pid, retval);
+}
+
+
+
+
+
 
 
 

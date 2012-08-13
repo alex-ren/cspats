@@ -40,7 +40,7 @@
 
 #define ATS_DYNLOADFLAG 0  // no need for dynamic loading
 
-staload "cspats.sats"
+staload "cspats/SATS/cspats.sats"
 
 %{^  // Embedded in the beginning of the generated file.
 
@@ -64,6 +64,7 @@ ats_int_type atslib_cspats_one2one_chan_io_create_err(ats_ref_type ppch)
         *((one2one_chan_ptr *)ppch) = pch;
         return 0;
     }
+
 }
 
 ATSinline()
@@ -118,6 +119,14 @@ atslib_cspats_many2one_chan_io_unref(ats_ptr_type pch)
     return many2one_chan_unref(pch);
 }
 
+ATSinline()
+ats_void_type
+atslib_cspats_wait_proc(pthread_t tid)
+{
+    void *ret = 0;
+    wait_proc(tid, &ret);
+    return;
+}
 
 %}  // end of [%{^]
 
@@ -330,6 +339,100 @@ fun {a:vt0p} alt_many2one_chan_in_read {tag:int} (
 implement {a} alt_many2one_chan_in_read {tag} (
   pf_s, pf_res | g, buf) =
   alt_many2one_chan_in_read_tsz (pf_s, pf_res | g, buf, sizeof<a>)
+
+
+extern fun app (p: process): ptr = "atslib_cspats_app"
+implement app (p): ptr = let
+  val _ = p ()
+  val () = cloptr_free p 
+in 
+  null
+end
+
+extern fun run_proc (p: process): pid = "atslib_cspats_run_proc"
+%{$
+pthread_t 
+atslib_cspats_run_proc(ats_clo_ptr_type p)
+{
+    pthread_t tid;
+    run_proc(&tid, (void *(*)(void *))atslib_cspats_app, p);
+    return tid;
+}
+%}
+
+extern fun wait_proc (tid: pid): void = "atslib_cspats_wait_proc"
+
+(*
+**
+fun run_app_error (
+  p: process >> opt (process, e != 0),
+  tid: pid? >> opt (pid, e == 0)
+  ): [e: int] int e
+**
+*)
+
+(*
+** Proto
+fun para_run2 (p1: process, p2: process):<fun1> void
+**
+*)
+implement para_run2 (p1, p2) = let
+  val tid1 = run_proc (p1)
+  val tid2 = run_proc (p2)
+
+  val _ = wait_proc (tid1)
+  val _ = wait_proc (tid2)
+in end
+
+(*
+** Proto
+fun para_run4 (p1: process, p2: process, p3: process, p4: process):<fun1> void
+**
+*)
+implement para_run4 (p1, p2, p3, p4) = let
+  val tid1 = run_proc (p1)
+  val tid2 = run_proc (p2)
+  val tid3 = run_proc (p3)
+  val tid4 = run_proc (p4)
+
+  val _ = wait_proc (tid1)
+  val _ = wait_proc (tid2)
+  val _ = wait_proc (tid3)
+  val _ = wait_proc (tid4)
+in end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

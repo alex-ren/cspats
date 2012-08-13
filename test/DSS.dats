@@ -1,5 +1,8 @@
-staload "contrib/cspats/SATS/cspats.sats"
+// staload "contrib/cspats/SATS/cspats.sats"
+staload "cspats/SATS/cspats.sats"
 
+// staload _(*template*) = "contrib/cspats/DATS/cspats.dats"
+staload _(*template*) = "cspats/DATS/cspats.dats"
 
 
 
@@ -13,8 +16,10 @@ extern fun release_Int (x: Int): void
 
 (* ************ ************** *)
 
-absviewtype req (int, int)
+absviewt@ype req (int, int) = int
 viewtypedef req = [cl: nat] [blk: nat] req (cl, blk)
+
+viewtypedef req_t = req
 extern fun create_req {cl,blk: nat} (cl: int cl, blk: int blk): req (cl, blk)
 extern fun release_req (req: req): void
 extern fun req_x {x,y: int} (req: !req (x, y)): int x
@@ -32,7 +37,7 @@ implement CELL (left, shift, right) = let
   var req: req?
   val () = one2one_chan_in_read (left, req)
   val () = barrier2_sync (shift)
-  val () = one2one_chan_out_write (right, req)
+  val () = one2one_chan_out_write<req_t> (right, req)
 in
   CELL (left, shift, right)
 end
@@ -109,7 +114,7 @@ in
     val () = alt_one2one_chan_in_read (pf_sel, res_enq | enq, req)
     prval () = alt_2_barrier2 (res_deq | deq)
 
-    val () = one2one_chan_out_write (left, req)
+    val () = one2one_chan_out_write<req_t> (left, req)
     val () = barrier2_sync (shift)
   in
     if i = 0 then DQ_i (1, enq, deq, shift, empty, left, right, next)
@@ -147,7 +152,7 @@ in
     val () = alt_one2one_chan_in_read (pf_sel, res_right | right, req)
     val () = alt_2_barrier2 (res_shift | shift)
 
-    val () = one2one_chan_out_write (next, req)
+    val () = one2one_chan_out_write<req_t> (next, req)
   in
     DQ_i (i - 1, enq, deq, shift, empty, left, right, next)
   end else let
@@ -213,9 +218,9 @@ implement DCtrl (dci, dio, dint, dco) = let
   var req: req?
   val () = one2one_chan_in_read (dci, req)
   val blk = req_y (req)
-  val () = one2one_chan_out_write (dio, blk)
+  val () = one2one_chan_out_write<int> (dio, blk)
   val () = barrier2_sync (dint)
-  val () = one2one_chan_out_write (dco, req)
+  val () = one2one_chan_out_write<req_t> (dco, req)
 in
   DCtrl (dci, dio, dint, dco)
 end
@@ -256,7 +261,7 @@ fun DS_idle (ds: one2one_chan_in (req),
             ): void = let
   var req: req?
   val () = one2one_chan_in_read (ds, req)
-  val () = one2one_chan_out_write (dci, req)
+  val () = one2one_chan_out_write<req_t> (dci, req)
 in
   DS_busy (ds, dci, dco, ack, enq, deq, empty, next)
 end
@@ -282,13 +287,13 @@ in
     val () = alt_2_one2one_chan_in (res_ds | ds)
     val cl = req_x (req)
     val () = release_req (req)
-    val () = one2one_chan_out_write (ack, cl)
+    val () = one2one_chan_out_write<int> (ack, cl)
   in
     DS_check (ds, dci, dco, ack, enq, deq, empty, next)
   end else let
     val () = alt_one2one_chan_in_read (pf_sel, res_ds | ds, req)
     val () = alt_2_one2one_chan_in (res_dco | dco)
-    val () = one2one_chan_out_write (enq, req)
+    val () = one2one_chan_out_write<req_t> (enq, req)
   in
     DS_busy (ds, dci, dco, ack, enq, deq, empty, next)
   end
@@ -319,7 +324,7 @@ in
     var req: req?
     val () = alt_one2one_chan_in_read (pf_sel, res_next | next, req)
     val () = alt_2_barrier2 (res_empty | empty)
-    val () = one2one_chan_out_write (dci, req)
+    val () = one2one_chan_out_write<req_t> (dci, req)
   in
     DS_busy (ds, dci, dco, ack, enq, deq, empty, next)
   end
@@ -382,9 +387,8 @@ implement DSS (ds, ack) = let
 in
 end
 
-(* ************ ************** *)
-
 ////
+(* ************ ************** *)
 
 // CSP: C(i) = ds!i.1 -> moreone -> ack.i->SKIP
 extern fun C_i {i: nat} (i: int i,
@@ -393,16 +397,16 @@ extern fun C_i {i: nat} (i: int i,
                   ): void
 
 implement C_i {i} (i, ds, ack) = let
-  val req = create_req (i, 2)
-  val () = one2one_chan_out_write (ds, req)
+  var req = create_req (i, 2)
+  val () = one2one_chan_out_write<req_t> (ds, req)
 
   // something like moreone
   val () = printf ("This is C_%d\n", @(i))
 
-  fun cmp (n: !int): bool = eq_Int_int (n, i)
-  val cl_no = one2one_chan_in_read_guard {int} (ack, cmp)
+  // fun cmp (n: !int): bool = eq_Int_int (n, i)
+  // val cl_no = one2one_chan_in_read_guard {int} (ack, cmp)
 
-  val () = release_Int (cl_no)
+  // val () = release_Int (cl_no)
   val () = one2one_chan_out_destroy (ds)
   val () = one2one_chan_in_destroy (ack)
 in end

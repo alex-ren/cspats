@@ -30,7 +30,7 @@ ATSRUNTIME=$(ATSUSRQ)/ccomp/runtime
 ATSCC=$(ATSUSRQ)/bin/atscc
 ATSOPT=$(ATSUSRQ)/bin/atsopt
 
-ATSCCFLAGS=-IATS $(CWD)/contrib/cspats/SATS
+ATSCCFLAGS=-IATS $(CWD)/contrib
 
 ATS_CC_INC=-I $(ATSRUNTIME) -I $(ATSUSRQ) -I $(CWD)
 
@@ -95,7 +95,7 @@ define make-cspcpp_library
 endef
 
 # ------------------------------------------------------
-# $(call make-cspcpp_library, library-name, source-file-list)
+# $(call make-cspats_library, library-name, source-file-list)
 define make-cspats_library
   cspats_lib += $1
   sources    += $2
@@ -104,6 +104,16 @@ define make-cspats_library
 	$(AR) $(ARFLAGS) $$@ $$^
 endef
 
+# ------------------------------------------------------
+# $(call make-cspprogram, program-name, source-file-list)
+define make-cspprogram
+  programs += $1
+  sources  += $2
+
+  $1: $(call source-to-object,$2) $(cspats_lib)
+	$(ATSCC) -o $$@ $(filter %.o,$$^) \
+          -l$(patsubst lib%.a,%,$(notdir $(cspats_lib))) -L$(dir $(cspats_lib))
+endef
 
 #= projects macro =================================
 
@@ -159,6 +169,7 @@ all:
 include contrib/cspats/LIB/common/module.mk
 include contrib/cspats/LIB/module.mk
 include contrib/cspats/module.mk
+include test/module.mk
 
 # The following must be after the "include".
 libraries += $(ec_lib) $(cspcpp_lib) $(cspats_lib)
@@ -196,13 +207,22 @@ endif
 #
 # %_sats.c: %.sats
 $(sats_c_files): $(call atscname,%.sats): %.sats
-	$(ATSOPT) --output $@ $(ATSCCFLAGS) --static $<
+	$(ATSOPT) --output $@ $(ATSCCFLAGS) --static $<; \
+	if [ $$? -ne 0 ]; then \
+          $(RM) $@; \
+          rm $$$$.hack; \
+        fi
 
 # %_dats.c: %.dats
 $(dats_c_files): $(call atscname,%.dats): %.dats
-	$(ATSOPT) --output $@ $(ATSCCFLAGS) --dynamic $<
+	$(ATSOPT) --output $@ $(ATSCCFLAGS) --dynamic $<; \
+	if [ $$? -ne 0 ]; then \
+          $(RM) $@; \
+          rm $$$$.hack; \
+        fi
 
 #=========================
+
 
 # xxx.depats: xxx.sats
 $(sats_dep): %.$(depats): %.sats

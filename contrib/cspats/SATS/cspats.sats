@@ -121,7 +121,7 @@ fun one2one_chan_in_read_tsz {a:vt0p} (
 //   ch: !one2one_chan_in a,
 //   data: &a? >> opt (a, ret <> 0)): #[ret:int] int ret
 
-overload >> with one2one_chan_in_read
+// overload >> with one2one_chan_in_read
 
 // overload >> with one2one_chan_in_read_opt
 
@@ -132,7 +132,7 @@ fun {a:vt0p} one2one_chan_out_write (
   data: &a >> a?): void =
 "mac#atslib_cspats_one2one_chan_out_write"
 
-overload << with one2one_chan_out_write
+// overload << with one2one_chan_out_write
 
 (* ****** ****** *)
 
@@ -208,7 +208,7 @@ fun many2one_chan_in_read_tsz {a:vt0p} (
 //   ch: !many2one_chan_in a,
 //   data: &a? >> opt (a, ret <> 0)): #[ret:int] int ret
 
-overload >> with many2one_chan_in_read
+// overload >> with many2one_chan_in_read
 
 // overload >> with many2one_chan_in_read_opt
 
@@ -219,7 +219,7 @@ fun {a:vt0p} many2one_chan_out_write (
   data: &a >> a?): void =
 "mac#atslib_cspats_many2one_chan_out_write"
 
-overload << with many2one_chan_out_write
+// overload << with many2one_chan_out_write
 
 (* ****** ****** *)
 
@@ -382,6 +382,9 @@ viewtypedef process = (() -<lin,cloptr1> void)
 
 fun para_run2 (p1: process, p2: process):<fun1> void
 fun para_run4 (p1: process, p2: process, p3: process, p4: process):<fun1> void
+
+
+abst@ype pid = $extype"pthread_t"
 
 
 

@@ -7,6 +7,8 @@ extern "C" {
 
 #include <stddef.h>
 
+#include <pthread.h>
+
 typedef void * one2one_chan_ptr;
 
 /*
@@ -85,6 +87,17 @@ void barrier2_sync(barrier2_ptr pbar);
 typedef void * alt_ptr;
 
 int alternative_2(alt_ptr g1, alt_ptr g2);
+
+/* ************** ******************* */
+void run_proc(pthread_t *pid, void *(*start_routine)(void *), void *arg);
+int run_proc_error(pthread_t *pid, void *(*start_routine)(void *), void *arg);
+
+void wait_proc(pthread_t pid, void **retval);
+int wait_proc_error(pthread_t pid, void **retval);
+
+
+
+
 
 #ifdef __cplusplus
 } /* extern "C" */

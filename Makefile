@@ -91,7 +91,8 @@ define make-cspcpp_library
   sources    += $2
 
   $1: $(call source-to-object,$2) $(ec_lib)
-	$(AR) $(ARFLAGS) $$@ $$^
+	cp $(ec_lib) $$@
+	$(AR) $(ARFLAGS) $$@ $(call source-to-object,$2)
 endef
 
 # ------------------------------------------------------
@@ -101,7 +102,8 @@ define make-cspats_library
   sources    += $2
 
   $1: $(call source-to-object,$2) $(cspcpp_lib)
-	$(AR) $(ARFLAGS) $$@ $$^
+	cp $(cspcpp_lib) $$@
+	$(AR) $(ARFLAGS) $$@ $(call source-to-object,$2)
 endef
 
 # ------------------------------------------------------
@@ -111,8 +113,9 @@ define make-cspprogram
   sources  += $2
 
   $1: $(call source-to-object,$2) $(cspats_lib)
-	$(ATSCC) -o $$@ $(filter %.o,$$^) \
-          -l$(patsubst lib%.a,%,$(notdir $(cspats_lib))) -L$(dir $(cspats_lib))
+	$(ATSCC) -o $$@ $$(filter %.o,$$^) \
+          -l$(patsubst lib%.a,%,$(notdir $(cspats_lib))) -L$(dir $(cspats_lib)) \
+          -lstdc++ -pthread
 endef
 
 #= projects macro =================================

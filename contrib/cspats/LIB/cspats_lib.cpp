@@ -215,68 +215,176 @@ EC_CLEANUP_END
 
 int Many2OneChannel::init()
 {
-    int rm = -1;
+    int r_sync = -1;
+    int r_cond = -1;
+    int r_mx = -1;
+    int r_cd = -1;
 
-    ec_rv( rm = pthread_mutex_init(&m_mxWrite, NULL) )
-    ec_extra_null ( m_pCh = One2OneChannel::create() )
+    ec_rv( r_sync = pthread_mutex_init(&m_sync, NULL) )
+    ec_rv( r_cond = pthread_cond_init(&m_cond, NULL) )
+    ec_rv( r_mx = pthread_mutex_init(&m_mxReader, NULL) )
+    ec_rv( r_cd = pthread_cond_init(&m_cdReader, NULL) )
 
     return 0;
 
 EC_CLEANUP_BGN
-    if (0 == rm)
+    if (0 == r_sync)
     {
        // No error should occur logically.
-       ec_rv_fatal( pthread_mutex_destroy(&m_mxWrite) )
+       ec_rv_fatal( pthread_mutex_destroy(&m_sync) )
     }
 
+    if (0 == r_cond)
+    {
+       // No error should occur logically.
+       ec_rv_fatal( pthread_cond_destroy(&m_cond) )
+    }
+
+    if (0 == r_mx)
+    {
+       // No error should occur logically.
+       ec_rv_fatal( pthread_mutex_destroy(&m_mxReader) )
+    }
     return -1;
 EC_CLEANUP_END
 }
 
 void Many2OneChannel::finalize()
 {
-    m_pCh->unref();
-    ec_rv_fatal( pthread_mutex_destroy(&m_mxWrite) )
+    ec_rv_fatal( pthread_mutex_destroy(&m_sync) )
+    ec_rv_fatal( pthread_cond_destroy(&m_cond) )
+    ec_rv_fatal( pthread_mutex_destroy(&m_mxReader) )
+    ec_rv_fatal( pthread_cond_destroy(&m_cdReader) )
 }
 
 bool Many2OneChannel::enable(Alternative *pAlt)
 {
-    return m_pCh->enable(pAlt);
+    MutexLock aLock(m_sync);
+    if (m_ulWriter > 0)
+    {
+        ec_rv_fatal( pthread_cond_broadcast(&m_cond) )
+    }
+    m_pAlt = pAlt;
+
+    // always return false
+    return false;
 }
 
 void Many2OneChannel::disable(bool care)
 {
-    return m_pCh->disable(care);
+    MutexLock aLock(m_sync);
+    m_pAlt = NULL;
+    return;
 }
 
 void Many2OneChannel::read(unsigned char *buffer, size_t len)
 {
-    m_pCh->read(buffer, len);
+    ec_rv_fatal( pthread_mutex_lock(&m_sync) )
+
+    m_func = NULL;  // set checking function
+    m_bReader = true;
+
+    if (m_ulWriter > 0)
+    {
+        // wake up one writer
+        ec_rv_fatal( pthread_cond_signal(&m_cond) )
+    }
+
+    ec_rv_fatal( pthread_mutex_lock(&m_mxReader) )
+    ec_rv_fatal( pthread_mutex_unlock(&m_sync) )
+
+    // wait till be waken by writer
+    ec_rv_fatal( pthread_cond_wait(&m_cdReader, &m_mxReader) )
+    ec_rv_fatal( pthread_mutex_unlock(&m_mxReader) )
+
+    ec_rv_fatal( pthread_mutex_lock(&m_sync) )
+    memcpy(buffer, m_pBuff, len);
+    m_pBuff = NULL;
+    m_bReader = false;
+
+    ec_rv_fatal( pthread_mutex_unlock(&m_sync) )
+
+    return;
+}
+
+void Many2OneChannel::guarded_read(unsigned char *buffer, 
+                                   size_t len,
+                                   guard_func func)
+{
+    ec_rv_fatal( pthread_mutex_lock(&m_sync) )
+
+    m_func = func;  // set checking function
+    m_bReader = true;
+
+    if (m_ulWriter > 0)
+    {
+        // wake up one writer
+        ec_rv_fatal( pthread_cond_signal(&m_cond) )
+    }
+
+    ec_rv_fatal( pthread_mutex_lock(&m_mxReader) )
+    ec_rv_fatal( pthread_mutex_unlock(&m_sync) )
+
+    // wait till be waken by writer
+    ec_rv_fatal( pthread_cond_wait(&m_cdReader, &m_mxReader) )
+    ec_rv_fatal( pthread_mutex_unlock(&m_mxReader) )
+
+    ec_rv_fatal( pthread_mutex_lock(&m_sync) )
+    memcpy(buffer, m_pBuff, len);
+    m_pBuff = NULL;
+    m_bReader = false;
+    m_func = NULL;
+
+    ec_rv_fatal( pthread_mutex_unlock(&m_sync) )
+
     return;
 }
 
 void Many2OneChannel::write(unsigned char *buffer)
 {
-    MutexLock aLock(m_mxWrite);
-    m_pCh->write(buffer);
+    MutexLock aLock(m_sync);
+    ++m_ulWriter;
+
+    if (NULL != m_pAlt)
+    {
+        m_pAlt->schedule(this);
+    }
+
+    while (false == m_bReader ||
+           NULL != m_pBuff    ||
+           (NULL != m_func && (false == m_func(buffer)))
+           )
+    {
+        ec_rv_fatal( pthread_cond_wait(&m_cond, &m_sync) )
+    }
+
+    m_pBuff = buffer;
+
+    // wake up reader
+    ec_rv_fatal( pthread_mutex_lock(&m_mxReader) )
+    ec_rv_fatal( pthread_cond_signal(&m_cdReader) )
+    ec_rv_fatal( pthread_mutex_unlock(&m_mxReader) )
+
+    --m_ulWriter;
+    
     return;
 }
 
 unsigned int Many2OneChannel::ref()
 {
-    return m_pCh->ref();
+    // atomic variable operation provided by gcc
+    return __sync_add_and_fetch(&m_uiCount, 1);
 }
 
 unsigned int Many2OneChannel::unref()
 {
-    unsigned int ref = m_pCh->unref();
+    // atomic variable operation provided by gcc
+    unsigned int ref = __sync_sub_and_fetch(&m_uiCount, 1);
     if (0 == ref)
     {
        this->finalize();
        delete this;
     }
-   
-    return ref;
 }
 
 Alternative * Alternative::create(Altable *c[], size_t len)

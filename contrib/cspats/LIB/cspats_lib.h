@@ -122,6 +122,7 @@ private:
     void finalize();
 
 private:
+    // reference counting
     unsigned int    m_uiCount;
 
     pthread_mutex_t m_sync;
@@ -141,12 +142,18 @@ public:
     bool enable(Alternative *pAlt);
     void disable(bool care = false);
     void read(unsigned char *buffer, size_t len);
+
+    typedef bool (*guard_func)(unsigned char *);
+    void guarded_read(unsigned char *buffer, size_t len, guard_func func);
     void write(unsigned char *buffer);
     unsigned int ref();
     unsigned int unref();
 
 private:
-    Many2OneChannel(): m_mxWrite(), m_pCh(NULL) {}
+    Many2OneChannel(): m_uiCount(1), m_sync(), m_cond(), 
+                       m_mxReader(), m_cdReader(), m_bReader(false),
+                       m_ulWriter(0), m_pBuff(NULL), m_func(NULL),
+                       m_pAlt(NULL) {}
     ~Many2OneChannel() {};
 
     // Many2OneChannel cannot be copied.
@@ -163,9 +170,21 @@ private:
 
     void finalize();
 private:
-    pthread_mutex_t m_mxWrite;  // mutex for multiple write
-    One2OneChannel *m_pCh;
+    // reference counting
+    unsigned int    m_uiCount;
 
+    pthread_mutex_t m_sync;
+    pthread_cond_t  m_cond;
+
+    pthread_mutex_t m_mxReader;
+    pthread_cond_t  m_cdReader;
+
+    // state variables
+    bool            m_bReader;
+    unsigned long   m_ulWriter;
+    unsigned char * m_pBuff;  // set by reader after read
+    guard_func      m_func;
+    Alternative   * m_pAlt;
 };
 
 class MutexLock {

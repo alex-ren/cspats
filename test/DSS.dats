@@ -16,14 +16,19 @@ extern fun release_Int (x: Int): void
 
 (* ************ ************** *)
 
-absviewt@ype req (int, int) = int
-viewtypedef req = [cl: nat] [blk: nat] req (cl, blk)
+absviewt@ype req (cl:int, blk:int) = @(int, int)
+viewtypedef req = [cl: int] [blk: int] req (cl, blk)
 
-viewtypedef req_t = req
-extern fun create_req {cl,blk: nat} (cl: int cl, blk: int blk): req (cl, blk)
-extern fun release_req (req: req): void
-extern fun req_x {x,y: int} (req: !req (x, y)): int x
-extern fun req_y {x,y: int} (req: !req (x, y)): int y
+extern fun create_req {cl,blk: int}
+  (cl: int cl, blk: int blk): req (cl, blk)
+extern prfun release_req (req: &req >> req?): void
+extern fun req_x {x,y: int} (req: &req (x, y)): int x
+extern fun req_y {x,y: int} (req: &req (x, y)): int y
+
+assume req (cl:int, blk:int) = @(int cl, int blk)
+implement create_req {cl,blk} (cl, blk) = @(cl, blk)
+implement req_x {x,y} (req) = req.0
+implement req_y {x,y} (req) = req.1
 
 extern fun CELL (
   left: one2one_chan_in (req)(*{1..2}.{0..3}*),
@@ -37,7 +42,7 @@ implement CELL (left, shift, right) = let
   var req: req?
   val () = one2one_chan_in_read (left, req)
   val () = barrier2_sync (shift)
-  val () = one2one_chan_out_write<req_t> (right, req)
+  val () = one2one_chan_out_write (right, req)
 in
   CELL (left, shift, right)
 end
@@ -114,7 +119,7 @@ in
     val () = alt_one2one_chan_in_read (pf_sel, res_enq | enq, req)
     prval () = alt_2_barrier2 (res_deq | deq)
 
-    val () = one2one_chan_out_write<req_t> (left, req)
+    val () = one2one_chan_out_write (left, req)
     val () = barrier2_sync (shift)
   in
     if i = 0 then DQ_i (1, enq, deq, shift, empty, left, right, next)
@@ -143,16 +148,16 @@ and X_i {i: pos | i <= 2} (i: int i,
                  right: one2one_chan_in (req),
                  next: one2one_chan_out (req)
                  ): void = let
-  val (res_right | ()) = one2one_chan_in_2_alt (right)
-  val (res_shift | ()) = barrier2_2_alt (shift)
+  prval (res_right | ()) = one2one_chan_in_2_alt (right)
+  prval (res_shift | ()) = barrier2_2_alt (shift)
   val (pf_sel | ret) = alternative_2 (right, shift)
 in
   if ret = 0 then let
     var req: req?
     val () = alt_one2one_chan_in_read (pf_sel, res_right | right, req)
-    val () = alt_2_barrier2 (res_shift | shift)
+    prval () = alt_2_barrier2 (res_shift | shift)
 
-    val () = one2one_chan_out_write<req_t> (next, req)
+    val () = one2one_chan_out_write (next, req)
   in
     DQ_i (i - 1, enq, deq, shift, empty, left, right, next)
   end else let
@@ -218,9 +223,9 @@ implement DCtrl (dci, dio, dint, dco) = let
   var req: req?
   val () = one2one_chan_in_read (dci, req)
   val blk = req_y (req)
-  val () = one2one_chan_out_write<int> (dio, blk)
+  val () = one2one_chan_out_write (dio, blk)
   val () = barrier2_sync (dint)
-  val () = one2one_chan_out_write<req_t> (dco, req)
+  val () = one2one_chan_out_write (dco, req)
 in
   DCtrl (dci, dio, dint, dco)
 end
@@ -253,7 +258,7 @@ fun Disk_proc (dio: one2one_chan_in (int), dint: barrier2): process =
 fun DS_idle (ds: one2one_chan_in (req),
              dci: one2one_chan_out (req),
              dco: one2one_chan_in req,
-             ack: one2one_chan_out int,
+             ack: many2one_chan_out int,
              enq: one2one_chan_out req,
              deq: barrier2,
              empty: barrier2,
@@ -261,7 +266,7 @@ fun DS_idle (ds: one2one_chan_in (req),
             ): void = let
   var req: req?
   val () = one2one_chan_in_read (ds, req)
-  val () = one2one_chan_out_write<req_t> (dci, req)
+  val () = one2one_chan_out_write (dci, req)
 in
   DS_busy (ds, dci, dco, ack, enq, deq, empty, next)
 end
@@ -271,29 +276,29 @@ end
 and DS_busy (ds: one2one_chan_in req,
              dci: one2one_chan_out (req),
              dco: one2one_chan_in req,
-             ack: one2one_chan_out int,
+             ack: many2one_chan_out int,
              enq: one2one_chan_out req,
              deq: barrier2,
              empty: barrier2,
              next: one2one_chan_in (req)
              ): void = let
-  val (res_dco | ()) = one2one_chan_in_2_alt (dco)
-  val (res_ds | ()) = one2one_chan_in_2_alt (ds)
+  prval (res_dco | ()) = one2one_chan_in_2_alt (dco)
+  prval (res_ds | ()) = one2one_chan_in_2_alt (ds)
   val (pf_sel | ret) = alternative_2 (dco, ds)
   var req: req?
 in
   if ret = 0 then let
     val () = alt_one2one_chan_in_read (pf_sel, res_dco | dco, req)
-    val () = alt_2_one2one_chan_in (res_ds | ds)
+    prval () = alt_2_one2one_chan_in (res_ds | ds)
     val cl = req_x (req)
-    val () = release_req (req)
-    val () = one2one_chan_out_write<int> (ack, cl)
+    prval () = release_req (req)
+    val () = many2one_chan_out_write (ack, cl)
   in
     DS_check (ds, dci, dco, ack, enq, deq, empty, next)
   end else let
     val () = alt_one2one_chan_in_read (pf_sel, res_ds | ds, req)
-    val () = alt_2_one2one_chan_in (res_dco | dco)
-    val () = one2one_chan_out_write<req_t> (enq, req)
+    prval () = alt_2_one2one_chan_in (res_dco | dco)
+    val () = one2one_chan_out_write (enq, req)
   in
     DS_busy (ds, dci, dco, ack, enq, deq, empty, next)
   end
@@ -304,27 +309,27 @@ end
 and DS_check (ds: one2one_chan_in req,
              dci: one2one_chan_out (req),
              dco: one2one_chan_in req,
-             ack: one2one_chan_out int,
+             ack: many2one_chan_out int,
              enq: one2one_chan_out req,
              deq: barrier2,
              empty: barrier2,
              next: one2one_chan_in (req)
              ): void = let
   val () = barrier2_sync (deq)
-  val (res_empty | ()) = barrier2_2_alt (empty)
-  val (res_next | ()) = one2one_chan_in_2_alt (next)
+  prval (res_empty | ()) = barrier2_2_alt (empty)
+  prval (res_next | ()) = one2one_chan_in_2_alt (next)
   val (pf_sel | ret) = alternative_2 (empty, next)
 in
   if ret = 0 then let
     val () = alt_barrier2_sync (pf_sel, res_empty | empty)
-    val () = alt_2_one2one_chan_in (res_next | next)
+    prval () = alt_2_one2one_chan_in (res_next | next)
   in
     DS_idle (ds, dci, dco, ack, enq, deq, empty, next)
   end else let
     var req: req?
     val () = alt_one2one_chan_in_read (pf_sel, res_next | next, req)
-    val () = alt_2_barrier2 (res_empty | empty)
-    val () = one2one_chan_out_write<req_t> (dci, req)
+    prval () = alt_2_barrier2 (res_empty | empty)
+    val () = one2one_chan_out_write (dci, req)
   in
     DS_busy (ds, dci, dco, ack, enq, deq, empty, next)
   end
@@ -337,7 +342,7 @@ val DSched = DS_idle
 fun DSched_proc (ds: one2one_chan_in req,
              dci: one2one_chan_out (req),
              dco: one2one_chan_in req,
-             ack: one2one_chan_out int,
+             ack: many2one_chan_out int,
              enq: one2one_chan_out req,
              deq: barrier2,
              empty: barrier2,
@@ -351,11 +356,11 @@ fun DSched_proc (ds: one2one_chan_in req,
 //      [|{|dci,dco|}|]
 //       (DCtrl [|{|dio,dint|}|] Disk)
 extern fun DSS (ds: one2one_chan_in req,
-                ack: one2one_chan_out int
+                ack: many2one_chan_out int
                ): void
 
 fun DSS_proc (ds: one2one_chan_in req,
-                ack: one2one_chan_out int
+                ack: many2one_chan_out int
                ): process =
   lam () =<lin, cloptr1> DSS (ds, ack)
 
@@ -387,18 +392,23 @@ implement DSS (ds, ack) = let
 in
 end
 
+implement main () = let
+  val () = printf ("dddddddddddddd\n", @())
+in
+end
+
 ////
 (* ************ ************** *)
 
 // CSP: C(i) = ds!i.1 -> moreone -> ack.i->SKIP
 extern fun C_i {i: nat} (i: int i,
                   ds: one2one_chan_out req,
-                  ack: one2one_chan_in int
+                  ack: many2one_chan_in int
                   ): void
 
 implement C_i {i} (i, ds, ack) = let
   var req = create_req (i, 2)
-  val () = one2one_chan_out_write<req_t> (ds, req)
+  val () = one2one_chan_out_write (ds, req)
 
   // something like moreone
   val () = printf ("This is C_%d\n", @(i))
@@ -408,7 +418,7 @@ implement C_i {i} (i, ds, ack) = let
 
   // val () = release_Int (cl_no)
   val () = one2one_chan_out_destroy (ds)
-  val () = one2one_chan_in_destroy (ack)
+  val () = many2one_chan_in_destroy (ack)
 in end
 
 
@@ -422,3 +432,4 @@ in end
 C(1) = ds!1.2 -> moreone -> ack.1->SKIP
 
 C(2) = ds!2.3 -> moretwo -> ack.2->SKIP
+

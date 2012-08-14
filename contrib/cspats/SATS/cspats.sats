@@ -127,10 +127,10 @@ fun one2one_chan_in_read_tsz {a:vt0p} (
 
 (* ****** ****** *)
 
-fun {a:vt0p} one2one_chan_out_write (
+fun one2one_chan_out_write{a:vt0p} (
   ch: !one2one_chan_out a,
   data: &a >> a?): void =
-"mac#atslib_cspats_one2one_chan_out_write"
+"atslib_cspats_one2one_chan_out_write"
 
 // overload << with one2one_chan_out_write
 
@@ -214,7 +214,7 @@ fun many2one_chan_in_read_tsz {a:vt0p} (
 
 (* ****** ****** *)
 
-fun {a:vt0p} many2one_chan_out_write (
+fun many2one_chan_out_write {a:vt0p} (
   ch: !many2one_chan_out a,
   data: &a >> a?): void =
 "mac#atslib_cspats_many2one_chan_out_write"

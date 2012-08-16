@@ -93,10 +93,17 @@ atslib_cspats_many2one_chan_in_destroy(ats_ptr_type pch)
     return;
 }
     
+ATSinline()
+ats_ptr_type
+atslib_cspats_many2one_chan_out_ref(ats_ptr_type pch)
+{
+    many2one_chan_ref((many2one_chan_ptr)pch);
+    return pch;
+}
 
 ATSinline()
 ats_void_type
-atslib_cspats_many2one_chan_out_destroy(ats_ptr_type pch)
+atslib_cspats_many2one_chan_out_unref(ats_ptr_type pch)
 {
     many2one_chan_unref((many2one_chan_ptr)pch);
     return;
@@ -110,6 +117,18 @@ atslib_cspats_many2one_chan_in_read_tsz(
     ats_size_type tsz)
 {
     return many2one_chan_read(pch, buff, tsz);
+}
+
+ATSinline()
+ats_void_type
+atslib_cspats_many2one_chan_in_cond_read_tsz(
+    ats_ptr_type pch,
+    ats_ref_type buff,
+    ats_size_type tsz,
+    ats_ptr_type f,
+    ats_ref_type env)
+{
+    return many2one_chan_cond_read(pch, buff, tsz, f, env);
 }
 
 ATSinline()

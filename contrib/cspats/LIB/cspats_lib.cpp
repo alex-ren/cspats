@@ -282,6 +282,7 @@ void Many2OneChannel::read(unsigned char *buffer, size_t len)
     ec_rv_fatal( pthread_mutex_lock(&m_sync) )
 
     m_func = NULL;  // set checking function
+    m_env = NULL;  // set checking function
     m_bReader = true;
 
     if (m_ulWriter > 0)
@@ -307,13 +308,15 @@ void Many2OneChannel::read(unsigned char *buffer, size_t len)
     return;
 }
 
-void Many2OneChannel::guarded_read(unsigned char *buffer, 
+void Many2OneChannel::cond_read(unsigned char *buffer, 
                                    size_t len,
-                                   guard_func func)
+                                   guard_func func,
+                                   void * env)
 {
     ec_rv_fatal( pthread_mutex_lock(&m_sync) )
 
     m_func = func;  // set checking function
+    m_env = env;  // set checking function
     m_bReader = true;
 
     if (m_ulWriter > 0)
@@ -334,6 +337,7 @@ void Many2OneChannel::guarded_read(unsigned char *buffer,
     m_pBuff = NULL;
     m_bReader = false;
     m_func = NULL;
+    m_env = NULL;
 
     ec_rv_fatal( pthread_mutex_unlock(&m_sync) )
 
@@ -352,7 +356,7 @@ void Many2OneChannel::write(unsigned char *buffer)
 
     while (false == m_bReader ||
            NULL != m_pBuff    ||
-           (NULL != m_func && (false == m_func(buffer)))
+           (NULL != m_func && (false == m_func(buffer, m_env)))
            )
     {
         ec_rv_fatal( pthread_cond_wait(&m_cond, &m_sync) )

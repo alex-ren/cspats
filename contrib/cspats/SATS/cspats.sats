@@ -196,11 +196,35 @@ fun {a:vt0p} many2one_chan_in_read (
   ch: !many2one_chan_in a,
   buf: &a? >> a): void
 
+(*
+** Name: many2one_chan_in_cond_read
+** Note: Conditional read. This function returns only when the
+** content read satisfies the condition.
+*)
+fun {a:vt0p} many2one_chan_in_cond_read 
+  {vt0:vt0p} {f:eff} (
+  ch: !many2one_chan_in a,
+  buf: &a? >> a,
+  f: (&a, &vt0>>vt0) -<fun,f> bool,
+  env: &vt0>>vt0) : void
+
 fun many2one_chan_in_read_tsz {a:vt0p} (
   ch: !many2one_chan_in a,
   buf: &a? >> a,
   tsz: sizeof_t a
   ): void = "mac#atslib_cspats_many2one_chan_in_read_tsz"
+
+(*
+** Name: many2one_chan_in_cond_read_tsz
+** Note: Conditional read. This function returns only when the
+** content read satisfies the condition.
+*)
+fun many2one_chan_in_cond_read_tsz {a:vt0p}{vt0:vt0p}{f:eff} (
+  ch: !many2one_chan_in a,
+  buf: &a? >> a,
+  tsz: sizeof_t a,
+  f: (&a, &vt0>>vt0) -<fun,f> bool,
+  env: &vt0>>vt0) : void = "atslib_cspats_many2one_chan_in_cond_read_tsz"
 
 // todo:
 // Is the following function really necessary?
@@ -381,6 +405,7 @@ fun alt_barrier2_sync {tag:int} (
 viewtypedef process = (() -<lin,cloptr1> void)
 
 fun para_run2 (p1: process, p2: process):<fun1> void
+fun para_run3 (p1: process, p2: process, p3: process):<fun1> void
 fun para_run4 (p1: process, p2: process, p3: process, p4: process):<fun1> void
 
 

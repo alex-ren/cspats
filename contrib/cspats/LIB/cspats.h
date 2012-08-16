@@ -3,6 +3,8 @@
 
 #ifdef __cplusplus
 extern "C" {
+#else
+#include <stdbool.h>
 #endif
 
 #include <stddef.h>
@@ -55,6 +57,13 @@ many2one_chan_ptr many2one_chan_ref(many2one_chan_ptr pch);
 void many2one_chan_unref(many2one_chan_ptr pch);
 
 void many2one_chan_read(many2one_chan_ptr pch, unsigned char *buffer, size_t len);
+void many2one_chan_cond_read(many2one_chan_ptr pch, 
+                             unsigned char *buffer, 
+                             size_t len,
+                             bool (*f)(unsigned char *, void *),
+                             void *env
+                             );
+
 void many2one_chan_write(many2one_chan_ptr pch, unsigned char *buffer);
 
 /* ************** ******************* */

@@ -315,6 +315,19 @@ implement{a} many2one_chan_in_read (ch, buf) =
 
 (*
 ** Proto
+fun {a:vt0p} many2one_chan_in_cond_read 
+  {vt0:vt0p} {f:eff} (
+  ch: !many2one_chan_in a,
+  buf: &a? >> a,
+  f: (&a, &vt0>>vt0) -<f> bool,
+  env: &vt0>>vt0) : void
+**
+*)
+implement{a} many2one_chan_in_cond_read (ch, buf, f, env) =
+  many2one_chan_in_cond_read_tsz (ch, buf, sizeof<a>, f, env)
+
+(*
+** Proto
 fun {a:vt0p} alt_one2one_chan_in_read {tag:int} (
   pf_s: selector, 
   pf_res: one2one_chan_in_res (a, tag)
@@ -382,6 +395,21 @@ implement para_run2 (p1, p2) = let
 
   val _ = wait_proc (tid1)
   val _ = wait_proc (tid2)
+in end
+
+(*
+** Proto
+fun para_run3 (p1: process, p2: process, p3: process):<fun1> void
+**
+*)
+implement para_run3 (p1, p2, p3) = let
+  val tid1 = run_proc (p1)
+  val tid2 = run_proc (p2)
+  val tid3 = run_proc (p3)
+
+  val _ = wait_proc (tid1)
+  val _ = wait_proc (tid2)
+  val _ = wait_proc (tid3)
 in end
 
 (*

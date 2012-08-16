@@ -84,6 +84,18 @@ void many2one_chan_read(many2one_chan_ptr pch, unsigned char *buffer, size_t len
 
 }
 
+void many2one_chan_cond_read(many2one_chan_ptr pch, 
+                             unsigned char *buffer, 
+                             size_t len,
+                             bool (*f)(unsigned char *, void *),
+                             void *env
+                             )
+{
+    Many2OneChannel *p = static_cast<Many2OneChannel *>(pch);
+    p->cond_read(buffer, len, f, env);
+
+}
+
 void many2one_chan_write(many2one_chan_ptr pch, unsigned char *buffer)
 {
     Many2OneChannel *p = static_cast<Many2OneChannel *>(pch);

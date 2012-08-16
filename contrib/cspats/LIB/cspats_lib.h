@@ -143,8 +143,8 @@ public:
     void disable(bool care = false);
     void read(unsigned char *buffer, size_t len);
 
-    typedef bool (*guard_func)(unsigned char *);
-    void guarded_read(unsigned char *buffer, size_t len, guard_func func);
+    typedef bool (*guard_func)(unsigned char *, void *);
+    void cond_read(unsigned char *buffer, size_t len, guard_func func, void *env);
     void write(unsigned char *buffer);
     unsigned int ref();
     unsigned int unref();
@@ -152,7 +152,7 @@ public:
 private:
     Many2OneChannel(): m_uiCount(1), m_sync(), m_cond(), 
                        m_mxReader(), m_cdReader(), m_bReader(false),
-                       m_ulWriter(0), m_pBuff(NULL), m_func(NULL),
+                       m_ulWriter(0), m_pBuff(NULL), m_func(NULL), m_env(NULL),
                        m_pAlt(NULL) {}
     ~Many2OneChannel() {};
 
@@ -183,6 +183,7 @@ private:
     bool            m_bReader;
     unsigned long   m_ulWriter;
     unsigned char * m_pBuff;  // set by reader after read
+    void          * m_env;
     guard_func      m_func;
     Alternative   * m_pAlt;
 };

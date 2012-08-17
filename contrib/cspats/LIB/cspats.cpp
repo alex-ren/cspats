@@ -112,7 +112,7 @@ void many2one_chan_write(many2one_chan_ptr pch, unsigned char *buffer)
 barrier2_ptr barrier2_create()
 {
     Barrier2 *p = NULL;
-    ec_null_fatal( Barrier2::create() )
+    ec_null_fatal( p = Barrier2::create() )
     return static_cast<barrier2_ptr>(p);
 }
 
@@ -133,6 +133,7 @@ barrier2_ptr barrier2_ref(barrier2_ptr pbar)
 {
     Barrier2 *p = static_cast<Barrier2 *>(pbar);
     p->ref();
+    // INSTANT_TRACE("barrier2_ref 000000000002\n")
     return pbar;
 }
 
@@ -155,7 +156,7 @@ int alternative_2(alt_ptr g1, alt_ptr g2)
     arr[1] = static_cast<Altable *>(g2);
 
     Alternative *p = NULL;
-    ec_null_fatal( Alternative::create(arr, 2) )
+    ec_null_fatal( p = Alternative::create(arr, 2) )
 
     return p->select();
 }

@@ -29,9 +29,10 @@ class Alternative;
 
 class Altable {
 public:
-    // When "enable" returns true, it knows that it will be selected.
-    virtual bool enable(Alternative *pAlt) = 0;
-    virtual void disable(bool care = false) = 0;
+    // When "enable2" returns true, it knows that it will be selected.
+    virtual bool enable2(Alternative *pAlt) = 0;
+    virtual void disable(bool care) = 0;
+    void foo();
 };
 
 /*
@@ -83,7 +84,7 @@ public:
 };
 
 
-class One2OneChannel: public Channel {
+class One2OneChannel: public virtual Channel {
 public:
     /*
      * Name: create
@@ -94,12 +95,12 @@ public:
     static One2OneChannel * create();
 
     // Alt is only applicable on reading part of the channel
-    bool enable(Alternative *pAlt);
-    void disable(bool care = false);
-    void read(unsigned char *buffer, size_t len);
-    void write(unsigned char *buffer);
-    unsigned int ref();
-    unsigned int unref();
+    virtual unsigned int ref();
+    virtual unsigned int unref();
+    virtual bool enable2(Alternative *pAlt);
+    virtual void disable(bool care);
+    virtual void read(unsigned char *buffer, size_t len);
+    virtual void write(unsigned char *buffer);
 
 private:
     One2OneChannel(): m_uiCount(1), m_sync(), m_cond(), 
@@ -134,13 +135,13 @@ private:
 
 };
 
-class Many2OneChannel: public Channel {
+class Many2OneChannel: public virtual Channel {
 public:
     static Many2OneChannel * create();
 
     // Alt is only applicable on reading part of the channel
-    bool enable(Alternative *pAlt);
-    void disable(bool care = false);
+    virtual bool enable2(Alternative *pAlt);
+    virtual void disable(bool care = false);
     void read(unsigned char *buffer, size_t len);
 
     typedef bool (*guard_func)(unsigned char *, void *);
@@ -201,8 +202,8 @@ public:
     static Barrier2 * create();
     void sync();
 
-    bool enable(Alternative *pAlt);
-    void disable(bool care = false);
+    virtual bool enable2(Alternative *pAlt);
+    virtual void disable(bool care = false);
 
     unsigned int ref();
     unsigned int unref();

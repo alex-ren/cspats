@@ -6,10 +6,31 @@
 
 #include <new>
 
+class AA {
+public:
+    virtual void foo() = 0;
+};
+
+class BB: public virtual AA {
+public:
+    virtual void foo()
+    {
+        printf("foo() in BB\n");
+    }
+};
+
+void Altable::foo()
+{
+    printf("================= Altable foo\n");
+}
+    
+
 MutexLock::MutexLock(pthread_mutex_t &mutex): m_mutex(mutex)
 {
     // No error should occur logically.
     ec_rv ( pthread_mutex_lock(&m_mutex) )
+    return;
+
 EC_CLEANUP_BGN
     exit(EXIT_FAILURE);
 EC_CLEANUP_END
@@ -19,6 +40,8 @@ MutexLock::~MutexLock()
 {
     // No error should occur logically.
     ec_rv ( pthread_mutex_unlock(&m_mutex) )
+    return;
+
 EC_CLEANUP_BGN
     exit(EXIT_FAILURE);
 EC_CLEANUP_END
@@ -30,6 +53,7 @@ One2OneChannel * One2OneChannel::create()
     One2OneChannel *p = NULL;
     int r = 0;
     ec_extra_null( p = new (std::nothrow) One2OneChannel() )
+    printf("One2OneChannel is %x\n", p);
 
     ec_extra_nzero( r = p->init() )
 
@@ -48,6 +72,7 @@ EC_CLEANUP_END
 unsigned int One2OneChannel::ref()
 {
     // atomic variable operation provided by gcc
+    printf("One2OneChannel::ref\n");
     return __sync_add_and_fetch(&m_uiCount, 1);
 }
 
@@ -55,6 +80,7 @@ unsigned int One2OneChannel::ref()
 unsigned int One2OneChannel::unref()
 {
     // atomic variable operation provided by gcc
+    printf("One2OneChannel::unref\n");
     unsigned int ref = __sync_sub_and_fetch(&m_uiCount, 1);
     if (0 == ref)
     {
@@ -161,21 +187,25 @@ void One2OneChannel::write(unsigned char *buffer)
 }
 
 /*
-* Name: One2OneChannel::enable
+* Name: One2OneChannel::enable2
 * Return:
 *     true: the channel is ready for reading
 */
-bool One2OneChannel::enable(Alternative *pAlt)
+bool One2OneChannel::enable2(Alternative *pAlt)
 {
+    printf("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n");
+    INSTANT_TRACE("One2OneChannel::enable2  0000")
     MutexLock aLock(m_sync);
     if (true == m_bEmpty)
     {
-       m_pAlt = pAlt;
-       return false;
+        INSTANT_TRACE("One2OneChannel::enable2  0001")
+        m_pAlt = pAlt;
+        return false;
     }
     else
     {
-       return true;
+        INSTANT_TRACE("One2OneChannel::enable2  0001")
+        return true;
     }
 }
 
@@ -198,6 +228,7 @@ Many2OneChannel * Many2OneChannel::create()
     Many2OneChannel *p = NULL;
     int r = 0;
     ec_extra_null( p = new (std::nothrow) Many2OneChannel() )
+    printf("Many2OneChannel is %x\n", p);
 
     ec_extra_nzero( r = p->init() )
 
@@ -257,13 +288,17 @@ void Many2OneChannel::finalize()
     ec_rv_fatal( pthread_cond_destroy(&m_cdReader) )
 }
 
-bool Many2OneChannel::enable(Alternative *pAlt)
+bool Many2OneChannel::enable2(Alternative *pAlt)
 {
+    printf("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n");
     MutexLock aLock(m_sync);
+    INSTANT_TRACE("Many2OneChannel::enable2  0001")
     if (m_ulWriter > 0)
     {
+        INSTANT_TRACE("Many2OneChannel::enable2  0002")
         ec_rv_fatal( pthread_cond_broadcast(&m_cond) )
     }
+    INSTANT_TRACE("Many2OneChannel::enable2  0003")
     m_pAlt = pAlt;
 
     // always return false
@@ -396,6 +431,7 @@ Alternative * Alternative::create(Altable *c[], size_t len)
     Alternative *p = NULL;
     int r = 0;
     ec_extra_null( p = new (std::nothrow) Alternative(c, len) )
+    printf("Alternative is %x\n", p);
 
     ec_extra_nzero( r = p->init() )
 
@@ -441,30 +477,42 @@ void Alternative::finalize()
 int Alternative::select()
 {
     size_t bound = 0;
+    INSTANT_TRACE("Alternative::select")
+
+    AA *pA = new BB();
+    pA->foo();
 
     m_state = eEnabling;
     for (bound = 0; bound < m_len; ++bound)
     {
+        INSTANT_TRACE("Alternative::select  000000010 for loop")
         MutexLock aLock(m_sync);
         // nothing has been selected
         if (eReady != m_state)
         {
-            if (m_c[bound]->enable(this))
+            INSTANT_TRACE("Alternative::select  000000100")
+            printf("============ Alternative::select: m_p[%d] is %x\n", bound, m_c[bound]);
+            m_c[bound]->foo();
+            if ((((Altable *)(m_c[bound]))->enable2(this)))
             {
+                INSTANT_TRACE("Alternative::select  000000200")
                 // one channel is ready for reading or
                 // one barrier is ready for sync
                 m_selector = m_c[bound];
                 m_state = eReady;
                 break;
             }
+            INSTANT_TRACE("Alternative::select  000000210")
         }
         else
         {
+            INSTANT_TRACE("Alternative::select  000000310")
             --bound;
             break;
         }
     }
 
+    INSTANT_TRACE("Alternative::select  000000400")
 
     if (bound == m_len)
     {
@@ -475,12 +523,15 @@ int Alternative::select()
     {
        MutexLock aLock(m_sync);
        {
+           INSTANT_TRACE("Alternative::select  000000410")
            if (eEnabling == m_state)
            {
+            INSTANT_TRACE("Alternative::select  000000420")
                m_state = eWaiting;
                ec_rv_fatal( pthread_cond_wait(&m_cond, &m_sync) )
                // m_state = eReady;
            }
+            INSTANT_TRACE("Alternative::select  000000430")
        }
     }
 
@@ -488,17 +539,21 @@ int Alternative::select()
     // Now the state must be eReady
     for (int i = 0; i <= bound; ++i)
     {
+        INSTANT_TRACE("Alternative::select  000000500 for loop")
         if (m_selector == m_c[i])
         {
             selected = i;
             m_c[i]->disable(true);
+            INSTANT_TRACE("Alternative::select  000000510")
         }
         else
         {
+            INSTANT_TRACE("Alternative::select  000000520")
             m_c[i]->disable(false);
         }
     }
 
+    INSTANT_TRACE("Alternative::select  000000600")
     m_state = eInactive;
     return selected;
 }
@@ -560,6 +615,7 @@ Barrier2 * Barrier2::create()
     int r = 0;
 
     ec_extra_null( p = new (std::nothrow) Barrier2() )
+    printf("Barrier2 is %x\n", p);
 
     ec_extra_nzero( r = p->init() )
 
@@ -576,27 +632,36 @@ EC_CLEANUP_END
 }
 
 // take the semaphone with it when return
-bool Barrier2::enable(Alternative *pAlt)
+bool Barrier2::enable2(Alternative *pAlt)
 {
+    printf("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n");
+    INSTANT_TRACE("Barrier2::enable2  0001")
     sem_wait(&m_sem);
+    INSTANT_TRACE("Barrier2::enable2  0002")
 
     MutexLock aLock(m_sync);
+    INSTANT_TRACE("Barrier2::enable2  0003")
 
     if (0 == m_parts)
     {   // first one to arrive
+        INSTANT_TRACE("Barrier2::enable2  0004")
         if (NULL == m_pAlt)
         {   // first alternative to arrive
+            INSTANT_TRACE("Barrier2::enable2  0005")
             m_pAlt = pAlt;
             return false;
         }
         else
         {
+            INSTANT_TRACE("Barrier2::enable2  0006")
             bool b = m_pAlt->schedule(this);  // wake up another alternative
             return b;
         }
+        INSTANT_TRACE("Barrier2::enable2  0007")
     }
     else  // second one to arrive
     {
+        INSTANT_TRACE("Barrier2::enable2  0008")
        m_pAlt = NULL;
        return true;
     }
@@ -619,6 +684,7 @@ void Barrier2::disable(bool care)
 unsigned int Barrier2::ref()
 {
     // atomic variable operation provided by gcc
+    // INSTANT_TRACE("Barrier2::ref\n")
     return __sync_add_and_fetch(&m_uiCount, 1);
 }
 

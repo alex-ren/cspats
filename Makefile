@@ -163,6 +163,8 @@ dependencies = $(sats_dep) $(dats_dep) $(cxx_dep) $(c_dep) $(sats_c_dep) $(dats_
 
 include_dirs := contrib/cspats/LIB contrib/cspats/LIB/common
 # CPPFLAGS  += $(addprefix -I ,$(include_dirs))
+CFLAGS    += -O0
+CXXFLAGS  += -O0
 # vpath %.h $(include_dirs)
 
 

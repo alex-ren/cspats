@@ -1,7 +1,7 @@
 
-#include "headers.h"
-#include "ec.h"
-#include "logf.h"
+#include "../headers.h"
+#include "../ec.h"
+#include "../logf.h"
 
 int main(int argc, char *argv[])
 {

@@ -3,16 +3,15 @@
 .PHONY: all
 all:
 
-include module.mk
-
-ROOT := ../../
+ROOT := ../../../../
 
 all: 
-	$(MAKE) --directory=$(ROOT) cspats_lib
+	$(MAKE) --directory=$(ROOT) cspcpp_test
 
 .PHONY: clean
 clean:
 	$(MAKE) --directory=$(ROOT) clean
+	$(RM) *_temp.log
 
 
 

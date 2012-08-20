@@ -85,6 +85,16 @@ define make-ec_library
 endef
 
 # ------------------------------------------------------
+# $(call make-cspprogram, program-name, source-file-list)
+define make-ec_test
+  ec_test += $1
+  sources += $2
+
+  $1: $(call source-to-object,$2) $(ec_lib)
+	$(CXX) -o $$@ $(call source-to-object,$2) \
+          -l$(patsubst lib%.a,%,$(notdir $(ec_lib))) -L$(dir $(ec_lib))
+endef
+# ------------------------------------------------------
 # $(call make-cspcpp_library, library-name, source-file-list)
 define make-cspcpp_library
   cspcpp_lib += $1
@@ -108,6 +118,17 @@ endef
 
 # ------------------------------------------------------
 # $(call make-cspprogram, program-name, source-file-list)
+define make-cspcpp_test
+  cspcpp_test += $1
+  sources  += $2
+
+  $1: $(call source-to-object,$2) $(cspcpp_lib)
+	$(CC) -o $$@ $(call source-to-object,$2) \
+          -l$(patsubst lib%.a,%,$(notdir $(cspcpp_lib))) -L$(dir $(cspcpp_lib)) \
+          -lstdc++ -pthread
+endef
+# ------------------------------------------------------
+# $(call make-cspprogram, program-name, source-file-list)
 define make-cspprogram
   programs += $1
   sources  += $2
@@ -126,7 +147,10 @@ endef
 modules   := contrib/cspats contrib/cspats/LIB contrib/cspats/LIB/common test
 programs  :=
 ec_lib    :=
+ec_test   :=
 cspcpp_lib:=
+cspcpp_test:=
+cspats_lib:=
 libraries :=
 sources   :=
 
@@ -178,6 +202,7 @@ include test/module.mk
 
 # The following must be after the "include".
 libraries += $(ec_lib) $(cspcpp_lib) $(cspats_lib)
+lib_test += $(ec_test) $(cspcpp_test)
 
 # =targets ========================================
 
@@ -190,8 +215,14 @@ libraries: $(libraries)
 .PHONY: ec_lib
 ec_lib: $(ec_lib)
 
+.PHONY: ec_test
+ec_test: $(ec_test)
+
 .PHONY: cspcpp_lib
 cspcpp_lib: $(cspcpp_lib)
+
+.PHONY: cspcpp_test
+cspcpp_test: $(cspcpp_test)
 
 .PHONY: cspats_lib
 cspats_lib: $(cspats_lib)
@@ -201,6 +232,7 @@ clean:
 	$(RM) $(objects) \
         $(programs) \
         $(libraries) \
+        $(lib_test) \
         $(dependencies) \
         $(ats_c_files)
 

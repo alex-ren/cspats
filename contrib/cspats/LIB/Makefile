@@ -3,8 +3,6 @@
 .PHONY: all
 all:
 
-include module.mk
-
 ROOT := ../../../
 
 all: 

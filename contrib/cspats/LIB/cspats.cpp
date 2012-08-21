@@ -149,6 +149,73 @@ void barrier2_sync(barrier2_ptr pbar)
     p->sync();
 }
 
+void barrier2_sync_sem(barrier2_ptr pbar)
+{
+    Barrier2 *p = static_cast<Barrier2 *>(pbar);
+    p->sync_sem();
+}
+/* *************** **************** */
+
+alt_ptr one2one_chan_in_2_alt(one2one_chan_ptr pch)
+{
+    // void * ==> One2OneChannel *
+    One2OneChannel *p = static_cast<One2OneChannel *>(pch);
+    // One2OneChannel * ==> Altable *
+    return static_cast<Altable *>(p);
+    // Altable * ==> void *
+}
+
+one2one_chan_ptr alt_2_one2one_chan_in(alt_ptr palt)
+{
+    // void * ==> Altable *
+    Altable *p = static_cast<Altable *>(palt);
+    // Altable * ==> One2OneChannel *
+    return dynamic_cast<One2OneChannel *>(p);
+    // One2OneChannel * ==> void *
+}
+
+/* *************** **************** */
+
+alt_ptr many2one_chan_in_2_alt(many2one_chan_ptr pch)
+{
+    // void * ==> Many2OneChannel *
+    Many2OneChannel *p = static_cast<Many2OneChannel *>(pch);
+    // Many2OneChannel * ==> Altable *
+    return static_cast<Altable *>(p);
+    // Altable * ==> void *
+}
+
+many2one_chan_ptr alt_2_many2one_chan_in(alt_ptr palt)
+{
+    // void * ==> Altable *
+    Altable *p = static_cast<Altable *>(palt);
+    // Altable * ==> Many2OneChannel *
+    return dynamic_cast<Many2OneChannel *>(p);
+    // Many2OneChannel * ==> void *
+}
+
+/* *************** **************** */
+
+alt_ptr barrier2_2_alt(barrier2_ptr pba)
+{
+    // void * ==> Barrier2 *
+    Barrier2 *p = static_cast<Barrier2 *>(pba);
+    // Barrier2 * ==> Altable *
+    return static_cast<Altable *>(p);
+    // Altable * ==> void *
+}
+
+barrier2_ptr alt_2_barrier2(alt_ptr palt)
+{
+    // void * ==> Altable *
+    Altable *p = static_cast<Altable *>(palt);
+    // Altable * ==> Barrier2 *
+    return dynamic_cast<Barrier2 *>(p);
+    // Barrier2 * ==> void *
+}
+
+/* *************** **************** */
+
 int alternative_2(alt_ptr g1, alt_ptr g2)
 {
     Altable *arr[2] = {};

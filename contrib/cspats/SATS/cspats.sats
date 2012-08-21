@@ -293,14 +293,14 @@ absview
   one2one_chan_res_vt0yp_int (a: viewt@ype, tag: int)
 stadef one2one_chan_in_res = one2one_chan_res_vt0yp_int
 
-prfun one2one_chan_in_2_alt {a:vt0p}{tag:int} (
-  ch: !one2one_chan_in (a, tag) >> alt (tag)
-  ): (one2one_chan_in_res (a, tag) | void)
+fun one2one_chan_in_2_alt {a:vt0p}{tag:int} (
+  ch: one2one_chan_in (a, tag)
+  ): (one2one_chan_in_res (a, tag) | alt (tag)) = "mac#atslib_cspats_one2one_chan_in_2_alt"
 
-prfun alt_2_one2one_chan_in {a:vt0p}{tag:int} (
+fun alt_2_one2one_chan_in {a:vt0p}{tag:int} (
   pf_res: one2one_chan_in_res (a, tag)
-  | g: !alt (tag) >> one2one_chan_in (a, tag)
-  ): void
+  | g: alt (tag)
+  ): one2one_chan_in (a, tag) = "mac#atslib_cspats_alt_2_one2one_chan_in"
 
 (* ****** ****** *)
 
@@ -308,14 +308,16 @@ absview
   many2one_chan_res_vt0yp_int (a: viewt@ype, tag: int)
 stadef many2one_chan_in_res = many2one_chan_res_vt0yp_int
 
-prfun many2one_chan_in_2_alt {a:vt0p}{tag:int} (
-  ch: !many2one_chan_in (a, tag) >> alt (tag)
-  ): (many2one_chan_in_res (a, tag) | void)
+fun many2one_chan_in_2_alt {a:vt0p}{tag:int} (
+  ch: many2one_chan_in (a, tag)
+  ): (many2one_chan_in_res (a, tag) | alt(tag))
+  = "mac#atslib_cspats_many2one_chan_in_2_alt"
 
-prfun alt_2_many2one_chan_in {a:vt0p}{tag:int} (
+fun alt_2_many2one_chan_in {a:vt0p}{tag:int} (
   pf_res: many2one_chan_in_res (a, tag)
-  | g: !alt (tag) >> many2one_chan_in (a, tag)
-  ): void
+  | g: alt (tag)
+  ): many2one_chan_in (a, tag)
+  = "mac#atslib_cspats_alt_2_many2one_chan_in"
 
 (* ****** ****** *)
 
@@ -323,14 +325,16 @@ absview
   barrier2_res_int (tag: int)
 stadef barrier2_res = barrier2_res_int
 
-prfun barrier2_2_alt {tag:int} (
-  bar: !barrier2 (tag) >> alt (tag)
-  ): (barrier2_res (tag) | void)
+fun barrier2_2_alt {tag:int} (
+  bar: barrier2 (tag)
+  ): (barrier2_res (tag) | alt (tag))
+  = "mac#atslib_cspats_barrier2_2_alt"
 
-prfun alt_2_barrier2 {tag:int} (
+fun alt_2_barrier2 {tag:int} (
   pf_res: barrier2_res (tag)
-  | g: !alt (tag) >> barrier2 (tag)
-  ): void
+  | g: alt (tag)
+  ): barrier2 (tag)
+  = "mac#atslib_cspats_alt_2_barrier2"
 
 (* ****** ****** *)
 
@@ -369,36 +373,36 @@ fun alternative_2 {t1,t2:int} (g1: !alt t1, g2: !alt t2):<fun1>
 fun {a:vt0p} alt_one2one_chan_in_read {tag:int} (
   pf_s: selector, 
   pf_res: one2one_chan_in_res (a, tag)
-  | g: !alt (tag)  >> one2one_chan_in (a, tag),
-    buf: &a? >> a): void
+  | g: alt (tag),
+    buf: &a? >> a): one2one_chan_in (a, tag)
 
 fun alt_one2one_chan_in_read_tsz {a:vt0p} {tag:int} (
   pf_s: selector, 
   pf_res: one2one_chan_in_res (a, tag)
-  | g: !alt (tag)  >> one2one_chan_in (a, tag),
+  | g: alt (tag),
     buf: &a? >> a,
-    tsz: sizeof_t a): void =
+    tsz: sizeof_t a): one2one_chan_in (a, tag) =
   "mac#atslib_cspats_alt_one2one_chan_in_read_tsz"
 
 fun {a:vt0p} alt_many2one_chan_in_read {tag:int} (
   pf_s: selector, 
   pf_res: many2one_chan_in_res (a, tag)
-  | g: !alt (tag)  >> many2one_chan_in (a, tag),
-    buf: &a? >> a): void
+  | g: alt (tag),
+    buf: &a? >> a): many2one_chan_in (a, tag)
 
 fun alt_many2one_chan_in_read_tsz {a:vt0p} {tag:int} (
   pf_s: selector, 
   pf_res: many2one_chan_in_res (a, tag)
-  | g: !alt (tag)  >> many2one_chan_in (a, tag),
+  | g: alt (tag),
     buf: &a? >> a,
-    tsz: sizeof_t a): void =
+    tsz: sizeof_t a): many2one_chan_in (a, tag) =
   "mac#atslib_cspats_alt_many2one_chan_in_read_tsz"
 
 fun alt_barrier2_sync {tag:int} (
   pf_s: selector, 
   pf_res: barrier2_res (tag)
-  | g: !alt (tag)  >> barrier2 (tag)
-  ): void =
+  | g: alt (tag)
+  ): barrier2 (tag) =
   "mac#atslib_cspats_alt_barrier2_sync"
 
 

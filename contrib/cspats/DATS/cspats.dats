@@ -331,8 +331,8 @@ implement{a} many2one_chan_in_cond_read (ch, buf, f, env) =
 fun {a:vt0p} alt_one2one_chan_in_read {tag:int} (
   pf_s: selector, 
   pf_res: one2one_chan_in_res (a, tag)
-  | g: !alt (tag)  >> one2one_chan_in (a, tag),
-    buf: &a? >> a): void
+  | g: alt (tag),
+    buf: &a? >> a): one2one_chan_in (a, tag)
 **
 *)
 implement {a} alt_one2one_chan_in_read {tag} (
@@ -345,8 +345,8 @@ implement {a} alt_one2one_chan_in_read {tag} (
 fun {a:vt0p} alt_many2one_chan_in_read {tag:int} (
   pf_s: selector, 
   pf_res: many2one_chan_in_res (a, tag)
-  | g: !alt (tag)  >> many2one_chan_in (a, tag),
-    buf: &a? >> a): void
+  | g: alt (tag),
+    buf: &a? >> a): many2one_chan_in (a, tag)
 **
 *)
 implement {a} alt_many2one_chan_in_read {tag} (

@@ -90,12 +90,27 @@ barrier2_ptr barrier2_ref(barrier2_ptr pbar);
 void barrier2_unref(barrier2_ptr pbar);
 
 void barrier2_sync(barrier2_ptr pbar);
+void barrier2_sync_sem(barrier2_ptr pbar);
 
 /* ************** ******************* */
 
 typedef void * alt_ptr;
 
 int alternative_2(alt_ptr g1, alt_ptr g2);
+
+/* ************** ******************* */
+
+alt_ptr one2one_chan_in_2_alt(one2one_chan_ptr pch);
+
+one2one_chan_ptr alt_2_one2one_chan_in(alt_ptr palt);
+
+alt_ptr many2one_chan_in_2_alt(many2one_chan_ptr pch);
+
+many2one_chan_ptr alt_2_many2one_chan_in(alt_ptr palt);
+
+alt_ptr barrier2_2_alt(barrier2_ptr pba);
+
+barrier2_ptr alt_2_barrier2(alt_ptr palt);
 
 /* ************** ******************* */
 void run_proc(pthread_t *pid, void *(*start_routine)(void *), void *arg);

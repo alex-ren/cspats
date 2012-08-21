@@ -29,8 +29,8 @@ class Alternative;
 
 class Altable {
 public:
-    // When "enable2" returns true, it knows that it will be selected.
-    virtual bool enable2(Alternative *pAlt) = 0;
+    // When "enable" returns true, it knows that it will be selected.
+    virtual bool enable(Alternative *pAlt) = 0;
     virtual void disable(bool care) = 0;
     void foo();
 };
@@ -97,7 +97,7 @@ public:
     // Alt is only applicable on reading part of the channel
     virtual unsigned int ref();
     virtual unsigned int unref();
-    virtual bool enable2(Alternative *pAlt);
+    virtual bool enable(Alternative *pAlt);
     virtual void disable(bool care);
     virtual void read(unsigned char *buffer, size_t len);
     virtual void write(unsigned char *buffer);
@@ -140,7 +140,7 @@ public:
     static Many2OneChannel * create();
 
     // Alt is only applicable on reading part of the channel
-    virtual bool enable2(Alternative *pAlt);
+    virtual bool enable(Alternative *pAlt);
     virtual void disable(bool care = false);
     void read(unsigned char *buffer, size_t len);
 
@@ -201,8 +201,9 @@ class Barrier2: public virtual Altable, Reference {
 public:
     static Barrier2 * create();
     void sync();
+    void sync_sem();
 
-    virtual bool enable2(Alternative *pAlt);
+    virtual bool enable(Alternative *pAlt);
     virtual void disable(bool care = false);
 
     unsigned int ref();

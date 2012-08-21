@@ -7,12 +7,6 @@ staload _(*template*) = "cspats/DATS/cspats.dats"
 
 
 
-(*
-absviewtype Int (int)
-viewtypedef Int = [x: int] Int x
-extern fun eq_Int_int {x, y: int} (x: !Int x, y: int y): bool (x == y)
-extern fun release_Int (x: Int): void
-*)
 
 (* ************ ************** *)
 
@@ -124,19 +118,19 @@ and DQ_i {i: nat | i < 2} (i: int i,
                  next: one2one_chan_out (req)
                  ): void = let
   val () = printf ("=======DQ_%d===00000001\n", @(i))
-  prval (res_enq | ()) = one2one_chan_in_2_alt (enq)
+  val (res_enq | enq_alt) = one2one_chan_in_2_alt (enq)
   val () = printf ("=======DQ_%d===00000002\n", @(i))
-  prval (res_deq | ()) = barrier2_2_alt (deq)
+  val (res_deq | deq_alt) = barrier2_2_alt (deq)
   val () = printf ("=======DQ_%d===00000003\n", @(i))
-  val (pf_sel | ret) = alternative_2 (enq, deq)
+  val (pf_sel | ret) = alternative_2 (enq_alt, deq_alt)
   val () = printf ("=======DQ_%d===00000004\n", @(i))
 in
   if ret = 0 then let
     var req: req?
     val () = printf ("=======DQ_%d===00000011\n", @(i))
-    val () = alt_one2one_chan_in_read (pf_sel, res_enq | enq, req)
+    val enq = alt_one2one_chan_in_read (pf_sel, res_enq | enq_alt, req)
     val () = printf ("=======DQ_%d===00000012\n", @(i))
-    prval () = alt_2_barrier2 (res_deq | deq)
+    val deq = alt_2_barrier2 (res_deq | deq_alt)
     val () = printf ("=======DQ_%d===00000013\n", @(i))
 
     val () = one2one_chan_out_write (left, req)
@@ -148,9 +142,9 @@ in
     else DQ_2 (enq, deq, shift, empty, left, right, next)
   end else let
     val () = printf ("=======DQ_%d===00000021\n", @(i))
-    val () = alt_barrier2_sync (pf_sel, res_deq | deq)
+    val deq = alt_barrier2_sync (pf_sel, res_deq | deq_alt)
     val () = printf ("=======DQ_%d===00000022\n", @(i))
-    prval () = alt_2_one2one_chan_in (res_enq | enq)
+    val enq = alt_2_one2one_chan_in (res_enq | enq_alt)
   in
     if i = 0 then let
       val () = printf ("=======DQ_%d===00000031\n", @(i))
@@ -174,21 +168,21 @@ and X_i {i: pos | i <= 2} (i: int i,
                  right: one2one_chan_in (req),
                  next: one2one_chan_out (req)
                  ): void = let
-  prval (res_right | ()) = one2one_chan_in_2_alt (right)
-  prval (res_shift | ()) = barrier2_2_alt (shift)
-  val (pf_sel | ret) = alternative_2 (right, shift)
+  val (res_right | right_alt) = one2one_chan_in_2_alt (right)
+  val (res_shift | shift_alt) = barrier2_2_alt (shift)
+  val (pf_sel | ret) = alternative_2 (right_alt, shift_alt)
 in
   if ret = 0 then let
     var req: req?
-    val () = alt_one2one_chan_in_read (pf_sel, res_right | right, req)
-    prval () = alt_2_barrier2 (res_shift | shift)
+    val right = alt_one2one_chan_in_read (pf_sel, res_right | right_alt, req)
+    val shift = alt_2_barrier2 (res_shift | shift_alt)
 
     val () = one2one_chan_out_write (next, req)
   in
     DQ_i (i - 1, enq, deq, shift, empty, left, right, next)
   end else let
-    val () = alt_barrier2_sync (pf_sel, res_shift | shift)
-    prval () = alt_2_one2one_chan_in (res_right | right)
+    val shift = alt_barrier2_sync (pf_sel, res_shift | shift_alt)
+    val right = alt_2_one2one_chan_in (res_right | right_alt)
   in
     X_i (i, enq, deq, shift, empty, left, right, next)
   end
@@ -275,8 +269,11 @@ fun DCtrl_proc (dci: one2one_chan_in (req),
 extern fun Disk (dio: one2one_chan_in (int), dint: barrier2): void
 implement Disk (dio, dint) = let
   var blk: int?
+  val () = printf ("=======Disk===00000001\n", @())
   val () = one2one_chan_in_read (dio, blk)
+  val () = printf ("=======Disk===00000002\n", @())
   val () = barrier2_sync (dint)
+  val () = printf ("=======Disk===00000003\n", @())
 in
   Disk (dio, dint)
 end
@@ -318,19 +315,19 @@ and DS_busy (ds: many2one_chan_in req,
              next: one2one_chan_in (req)
              ): void = let
   val () = printf ("=======DSS_busy===00000001\n", @())
-  prval (res_dco | ()) = one2one_chan_in_2_alt (dco)
+  val (res_dco | dco_alt) = one2one_chan_in_2_alt (dco)
   val () = printf ("=======DSS_busy===00000002\n", @())
-  prval (res_ds | ()) = many2one_chan_in_2_alt (ds)
+  val (res_ds | ds_alt) = many2one_chan_in_2_alt (ds)
   val () = printf ("=======DSS_busy===00000003\n", @())
-  val (pf_sel | ret) = alternative_2 (dco, ds)
+  val (pf_sel | ret) = alternative_2 (dco_alt, ds_alt)
   val () = printf ("=======DSS_busy===00000004\n", @())
   var req: req?
 in
   if ret = 0 then let
     val () = printf ("=======DSS_busy===00000010\n", @())
-    val () = alt_one2one_chan_in_read (pf_sel, res_dco | dco, req)
+    val dco = alt_one2one_chan_in_read (pf_sel, res_dco | dco_alt, req)
     val () = printf ("=======DSS_busy===00000011\n", @())
-    prval () = alt_2_many2one_chan_in (res_ds | ds)
+    val ds = alt_2_many2one_chan_in (res_ds | ds_alt)
     val () = printf ("=======DSS_busy===00000012\n", @())
     var cl = req_x (req)
     val () = printf ("=======DSS_busy===00000013\n", @())
@@ -345,9 +342,9 @@ in
     DS_check (ds, dci, dco, ack, enq, deq, empty, next)
   end else let
     val () = printf ("=======DSS_busy===00000021\n", @())
-    val () = alt_many2one_chan_in_read (pf_sel, res_ds | ds, req)
+    val ds = alt_many2one_chan_in_read (pf_sel, res_ds | ds_alt, req)
     val () = printf ("=======DSS_busy===00000022\n", @())
-    prval () = alt_2_one2one_chan_in (res_dco | dco)
+    val dco = alt_2_one2one_chan_in (res_dco | dco_alt)
     val () = printf ("=======DSS_busy===00000023\n", @())
     val () = one2one_chan_out_write (enq, req)
     val () = printf ("=======DSS_busy===00000024\n", @())
@@ -370,27 +367,27 @@ and DS_check (ds: many2one_chan_in req,
   val () = printf ("=======DSS_check===00000000\n", @())
   val () = barrier2_sync (deq)
   val () = printf ("=======DSS_check===00000001\n", @())
-  prval (res_empty | ()) = barrier2_2_alt (empty)
+  val (res_empty | empty_alt) = barrier2_2_alt (empty)
   val () = printf ("=======DSS_check===00000002\n", @())
-  prval (res_next | ()) = one2one_chan_in_2_alt (next)
+  val (res_next | next_alt) = one2one_chan_in_2_alt (next)
   val () = printf ("=======DSS_check===00000003\n", @())
-  val (pf_sel | ret) = alternative_2 (empty, next)
+  val (pf_sel | ret) = alternative_2 (empty_alt, next_alt)
   val () = printf ("=======DSS_check===00000004\n", @())
 in
   if ret = 0 then let
     val () = printf ("=======DSS_check===00000005\n", @())
-    val () = alt_barrier2_sync (pf_sel, res_empty | empty)
+    val empty = alt_barrier2_sync (pf_sel, res_empty | empty_alt)
     val () = printf ("=======DSS_check===00000006\n", @())
-    prval () = alt_2_one2one_chan_in (res_next | next)
+    val next = alt_2_one2one_chan_in (res_next | next_alt)
     val () = printf ("=======DSS_check===00000007\n", @())
   in
     DS_idle (ds, dci, dco, ack, enq, deq, empty, next)
   end else let
     var req: req?
     val () = printf ("=======DSS_check===00000011\n", @())
-    val () = alt_one2one_chan_in_read (pf_sel, res_next | next, req)
+    val next = alt_one2one_chan_in_read (pf_sel, res_next | next_alt, req)
     val () = printf ("=======DSS_check===00000012\n", @())
-    prval () = alt_2_barrier2 (res_empty | empty)
+    val empty = alt_2_barrier2 (res_empty | empty_alt)
     val () = printf ("=======DSS_check===00000013\n", @())
     val () = one2one_chan_out_write (dci, req)
     val () = printf ("=======DSS_check===00000014\n", @())
@@ -515,24 +512,24 @@ extern fun SYS (): void
 implement SYS () = let
   val+~ many2one_pair (ds_in, ds_out) = many2one_chan_create {req} ()
   val () = printf ("============00000000\n", @())
-  // val ds_out2 = many2one_chan_out_ref (ds_out)
+  val ds_out2 = many2one_chan_out_ref (ds_out)
   val () = printf ("============00000001\n", @())
 
   val+~ many2one_pair (ack_in, ack_out) = many2one_chan_create {int} ()
   val () = printf ("============00000002\n", @())
-  // val ack_out2 = many2one_chan_out_ref (ack_out)
+  val ack_out2 = many2one_chan_out_ref (ack_out)
   val () = printf ("============00000003\n", @())
 
   val pc1 = C_i_proc (1, 2, ds_out, ack_out)
   val () = printf ("============00000004\n", @())
-  // val pc2 = C_i_proc (2, 3, ds_out2, ack_out2)
+  val pc2 = C_i_proc (2, 3, ds_out2, ack_out2)
   val () = printf ("============00000005\n", @())
 
   val pdss = DSS_proc (ds_in, ack_in)
   val () = printf ("============00000006\n", @())
 
-  // val () =  para_run3 (pc1, pc2, pdss)
-  val () =  para_run2 (pc1, pdss)
+  val () =  para_run3 (pc1, pc2, pdss)
+  // val () =  para_run2 (pc1, pdss)
   val () = printf ("============00000007\n", @())
 in
 end

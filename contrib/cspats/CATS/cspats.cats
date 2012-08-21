@@ -185,6 +185,48 @@ atslib_cspats_barrier2_sync(ats_ptr_type pbar)
 }
 
 ATSinline()
+ats_ptr_type
+atslib_cspats_one2one_chan_in_2_alt(ats_ptr_type pch)
+{
+    return one2one_chan_in_2_alt((one2one_chan_ptr)pch);
+}
+
+ATSinline()
+ats_ptr_type
+atslib_cspats_alt_2_one2one_chan_in(ats_ptr_type palt)
+{
+    return alt_2_one2one_chan_in((alt_ptr)palt);
+}
+
+ATSinline()
+ats_ptr_type
+atslib_cspats_many2one_chan_in_2_alt(ats_ptr_type pch)
+{
+    return many2one_chan_in_2_alt((many2one_chan_ptr)pch);
+}
+
+ATSinline()
+ats_ptr_type
+atslib_cspats_alt_2_many2one_chan_in(ats_ptr_type palt)
+{
+    return alt_2_many2one_chan_in((alt_ptr)palt);
+}
+
+ATSinline()
+ats_ptr_type
+atslib_cspats_barrier2_2_alt(ats_ptr_type pba)
+{
+    return barrier2_2_alt((barrier2_ptr)pba);
+}
+
+ATSinline()
+ats_ptr_type
+atslib_cspats_alt_2_barrier2(ats_ptr_type palt)
+{
+    return alt_2_barrier2((alt_ptr)palt);
+}
+
+ATSinline()
 ats_int_type
 atslib_cspats_alternative_2(ats_ptr_type g1, ats_ptr_type g2)
 {
@@ -192,33 +234,37 @@ atslib_cspats_alternative_2(ats_ptr_type g1, ats_ptr_type g2)
 }
 
 ATSinline()
-ats_void_type
+ats_ptr_type
 atslib_cspats_alt_one2one_chan_in_read_tsz(
     ats_ptr_type g,
     ats_ref_type buf,
     ats_size_type tsz)
 {
-    one2one_chan_ptr pch = (one2one_chan_ptr)g;
-    return one2one_chan_read(pch, buf, tsz);
+    one2one_chan_ptr pch = alt_2_one2one_chan_in((alt_ptr)g);
+    one2one_chan_read(pch, buf, tsz);
+    return pch;
 }
 
 ATSinline()
-ats_void_type
+ats_ptr_type
 atslib_cspats_alt_many2one_chan_in_read_tsz(
     ats_ptr_type g,
     ats_ref_type buf,
     ats_size_type tsz)
 {
-    many2one_chan_ptr pch = (many2one_chan_ptr)g;
-    return many2one_chan_read(pch, buf, tsz);
+    many2one_chan_ptr pch = alt_2_many2one_chan_in((alt_ptr)g);
+    many2one_chan_read(pch, buf, tsz);
+    return pch;
 }
 
     
 ATSinline()
-ats_void_type
+ats_ptr_type
 atslib_cspats_alt_barrier2_sync(ats_ptr_type g)
 {
-    return barrier2_sync((barrier2_ptr)g);
+    barrier2_ptr pba = alt_2_barrier2((alt_ptr)g);
+    barrier2_sync_sem(pba);
+    return pba;
 }
     
 

@@ -1,6 +1,6 @@
 ##
 ##
-## A Makefile template for compiling ATS programs
+## A Makefile cspcpp_test for compiling ATS programs
 ##
 ##
 
@@ -85,7 +85,7 @@ define make-ec_library
 endef
 
 # ------------------------------------------------------
-# $(call make-cspprogram, program-name, source-file-list)
+# $(call make-ec_test, program-name, source-file-list)
 define make-ec_test
   ec_test += $1
   sources += $2
@@ -117,7 +117,7 @@ define make-cspats_library
 endef
 
 # ------------------------------------------------------
-# $(call make-cspprogram, program-name, source-file-list)
+# $(call make-cspcpp_test, program-name, source-file-list)
 define make-cspcpp_test
   cspcpp_test += $1
   sources  += $2
@@ -185,8 +185,8 @@ dependencies = $(sats_dep) $(dats_dep) $(cxx_dep) $(c_dep) $(sats_c_dep) $(dats_
 
 # =========================================
 
-include_dirs := contrib/cspats/LIB contrib/cspats/LIB/common
-# CPPFLAGS  += $(addprefix -I ,$(include_dirs))
+include_dirs := $(CWD) contrib/cspats/LIB contrib/cspats/LIB/common
+CPPFLAGS  += $(addprefix -I ,$(include_dirs))
 CFLAGS    += -O0
 CXXFLAGS  += -O0
 # vpath %.h $(include_dirs)

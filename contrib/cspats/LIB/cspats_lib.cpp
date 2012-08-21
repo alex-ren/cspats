@@ -6,24 +6,6 @@
 
 #include <new>
 
-class AA {
-public:
-    virtual void foo() = 0;
-};
-
-class BB: public virtual AA {
-public:
-    virtual void foo()
-    {
-        printf("foo() in BB\n");
-    }
-};
-
-void Altable::foo()
-{
-    printf("================= Altable foo\n");
-}
-    
 
 MutexLock::MutexLock(pthread_mutex_t &mutex): m_mutex(mutex)
 {
@@ -187,24 +169,24 @@ void One2OneChannel::write(unsigned char *buffer)
 }
 
 /*
-* Name: One2OneChannel::enable2
+* Name: One2OneChannel::enable
 * Return:
 *     true: the channel is ready for reading
 */
-bool One2OneChannel::enable2(Alternative *pAlt)
+bool One2OneChannel::enable(Alternative *pAlt)
 {
     printf("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n");
-    INSTANT_TRACE("One2OneChannel::enable2  0000")
+    INSTANT_TRACE("One2OneChannel::enable  0000")
     MutexLock aLock(m_sync);
     if (true == m_bEmpty)
     {
-        INSTANT_TRACE("One2OneChannel::enable2  0001")
+        INSTANT_TRACE("One2OneChannel::enable  0001")
         m_pAlt = pAlt;
         return false;
     }
     else
     {
-        INSTANT_TRACE("One2OneChannel::enable2  0001")
+        INSTANT_TRACE("One2OneChannel::enable  0001")
         return true;
     }
 }
@@ -288,17 +270,17 @@ void Many2OneChannel::finalize()
     ec_rv_fatal( pthread_cond_destroy(&m_cdReader) )
 }
 
-bool Many2OneChannel::enable2(Alternative *pAlt)
+bool Many2OneChannel::enable(Alternative *pAlt)
 {
     printf("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n");
     MutexLock aLock(m_sync);
-    INSTANT_TRACE("Many2OneChannel::enable2  0001")
+    INSTANT_TRACE("Many2OneChannel::enable  0001")
     if (m_ulWriter > 0)
     {
-        INSTANT_TRACE("Many2OneChannel::enable2  0002")
+        INSTANT_TRACE("Many2OneChannel::enable  0002")
         ec_rv_fatal( pthread_cond_broadcast(&m_cond) )
     }
-    INSTANT_TRACE("Many2OneChannel::enable2  0003")
+    INSTANT_TRACE("Many2OneChannel::enable  0003")
     m_pAlt = pAlt;
 
     // always return false
@@ -479,9 +461,6 @@ int Alternative::select()
     size_t bound = 0;
     INSTANT_TRACE("Alternative::select")
 
-    AA *pA = new BB();
-    pA->foo();
-
     m_state = eEnabling;
     for (bound = 0; bound < m_len; ++bound)
     {
@@ -492,8 +471,7 @@ int Alternative::select()
         {
             INSTANT_TRACE("Alternative::select  000000100")
             printf("============ Alternative::select: m_p[%d] is %x\n", bound, m_c[bound]);
-            m_c[bound]->foo();
-            if ((((Altable *)(m_c[bound]))->enable2(this)))
+            if ((((Altable *)(m_c[bound]))->enable(this)))
             {
                 INSTANT_TRACE("Alternative::select  000000200")
                 // one channel is ready for reading or
@@ -521,18 +499,18 @@ int Alternative::select()
 
     // lock protected
     {
-       MutexLock aLock(m_sync);
-       {
-           INSTANT_TRACE("Alternative::select  000000410")
-           if (eEnabling == m_state)
-           {
-            INSTANT_TRACE("Alternative::select  000000420")
-               m_state = eWaiting;
-               ec_rv_fatal( pthread_cond_wait(&m_cond, &m_sync) )
-               // m_state = eReady;
-           }
+        MutexLock aLock(m_sync);
+        {
+            INSTANT_TRACE("Alternative::select  000000410")
+            if (eEnabling == m_state)
+            {
+                INSTANT_TRACE("Alternative::select  000000420")
+                m_state = eWaiting;
+                ec_rv_fatal( pthread_cond_wait(&m_cond, &m_sync) )
+                // m_state = eReady;
+            }
             INSTANT_TRACE("Alternative::select  000000430")
-       }
+        }
     }
 
     size_t selected = m_len;
@@ -581,30 +559,50 @@ bool Alternative::schedule(Altable *alt)
 }
 
 
-
 void Barrier2::sync()
 {
+    INSTANT_TRACE("Barrier2::sync  000000000")
     sem_wait(&m_sem);
+    INSTANT_TRACE("Barrier2::sync  000000001")
+    this->sync_sem();
+    return;
+}
+
+
+// This function is used for sync after enable, which
+// has grabbed the semaphore.
+void Barrier2::sync_sem()
+{
+    INSTANT_TRACE("Barrier2::sync_sem  000000000")
 
     MutexLock aLock(m_sync);
+    INSTANT_TRACE("Barrier2::sync_sem  000000002")
 
     ++m_parts;
     // first part to come (excluding used by alternative)
     if (2 != m_parts)  // maybe 1 or 3
     {
-       if (NULL != m_pAlt)
-       {
-           m_pAlt->schedule(this);
-       }
-       pthread_cond_wait(&m_cond, &m_sync);
+        INSTANT_TRACE("Barrier2::sync_sem  000000010")
+        if (NULL != m_pAlt)
+        {
+            INSTANT_TRACE("Barrier2::sync_sem  000000011")
+            m_pAlt->schedule(this);
+        }
+        INSTANT_TRACE("Barrier2::sync_sem  000000012")
+        pthread_cond_wait(&m_cond, &m_sync);
+        INSTANT_TRACE("Barrier2::sync_sem  000000013")
     }
     else  // assert m_parts == 2
     {
+        INSTANT_TRACE("Barrier2::sync_sem  000000020")
         pthread_cond_signal(&m_cond);
+        INSTANT_TRACE("Barrier2::sync_sem  000000021")
         m_parts -= 2; 
     }
 
+    INSTANT_TRACE("Barrier2::sync_sem  000000030")
     sem_post(&m_sem);
+    INSTANT_TRACE("Barrier2::sync_sem  000000031")
     return;
 }
 
@@ -631,37 +629,37 @@ EC_CLEANUP_END
 
 }
 
-// take the semaphone with it when return
-bool Barrier2::enable2(Alternative *pAlt)
+// take the semaphore with it when return
+bool Barrier2::enable(Alternative *pAlt)
 {
     printf("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n");
-    INSTANT_TRACE("Barrier2::enable2  0001")
+    INSTANT_TRACE("Barrier2::enable  0001")
     sem_wait(&m_sem);
-    INSTANT_TRACE("Barrier2::enable2  0002")
+    INSTANT_TRACE("Barrier2::enable  0002")
 
     MutexLock aLock(m_sync);
-    INSTANT_TRACE("Barrier2::enable2  0003")
+    INSTANT_TRACE("Barrier2::enable  0003")
 
     if (0 == m_parts)
     {   // first one to arrive
-        INSTANT_TRACE("Barrier2::enable2  0004")
+        INSTANT_TRACE("Barrier2::enable  0004")
         if (NULL == m_pAlt)
         {   // first alternative to arrive
-            INSTANT_TRACE("Barrier2::enable2  0005")
+            INSTANT_TRACE("Barrier2::enable  0005")
             m_pAlt = pAlt;
             return false;
         }
         else
         {
-            INSTANT_TRACE("Barrier2::enable2  0006")
+            INSTANT_TRACE("Barrier2::enable  0006")
             bool b = m_pAlt->schedule(this);  // wake up another alternative
             return b;
         }
-        INSTANT_TRACE("Barrier2::enable2  0007")
+        INSTANT_TRACE("Barrier2::enable  0007")
     }
     else  // second one to arrive
     {
-        INSTANT_TRACE("Barrier2::enable2  0008")
+        INSTANT_TRACE("Barrier2::enable  0008")
        m_pAlt = NULL;
        return true;
     }

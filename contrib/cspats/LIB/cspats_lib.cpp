@@ -35,7 +35,6 @@ One2OneChannel * One2OneChannel::create()
     One2OneChannel *p = NULL;
     int r = 0;
     ec_extra_null( p = new (std::nothrow) One2OneChannel() )
-    printf("One2OneChannel is %x\n", p);
 
     ec_extra_nzero( r = p->init() )
 
@@ -54,7 +53,6 @@ EC_CLEANUP_END
 unsigned int One2OneChannel::ref()
 {
     // atomic variable operation provided by gcc
-    printf("One2OneChannel::ref\n");
     return __sync_add_and_fetch(&m_uiCount, 1);
 }
 
@@ -62,7 +60,6 @@ unsigned int One2OneChannel::ref()
 unsigned int One2OneChannel::unref()
 {
     // atomic variable operation provided by gcc
-    printf("One2OneChannel::unref\n");
     unsigned int ref = __sync_sub_and_fetch(&m_uiCount, 1);
     if (0 == ref)
     {
@@ -175,18 +172,17 @@ void One2OneChannel::write(unsigned char *buffer)
 */
 bool One2OneChannel::enable(Alternative *pAlt)
 {
-    printf("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n");
-    INSTANT_TRACE("One2OneChannel::enable  0000")
+    INSTANT_TRACE("")
     MutexLock aLock(m_sync);
     if (true == m_bEmpty)
     {
-        INSTANT_TRACE("One2OneChannel::enable  0001")
+        INSTANT_TRACE("")
         m_pAlt = pAlt;
         return false;
     }
     else
     {
-        INSTANT_TRACE("One2OneChannel::enable  0001")
+        INSTANT_TRACE("")
         return true;
     }
 }
@@ -210,7 +206,6 @@ Many2OneChannel * Many2OneChannel::create()
     Many2OneChannel *p = NULL;
     int r = 0;
     ec_extra_null( p = new (std::nothrow) Many2OneChannel() )
-    printf("Many2OneChannel is %x\n", p);
 
     ec_extra_nzero( r = p->init() )
 
@@ -272,15 +267,14 @@ void Many2OneChannel::finalize()
 
 bool Many2OneChannel::enable(Alternative *pAlt)
 {
-    printf("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n");
     MutexLock aLock(m_sync);
-    INSTANT_TRACE("Many2OneChannel::enable  0001")
+    INSTANT_TRACE("")
     if (m_ulWriter > 0)
     {
-        INSTANT_TRACE("Many2OneChannel::enable  0002")
+        INSTANT_TRACE("")
         ec_rv_fatal( pthread_cond_broadcast(&m_cond) )
     }
-    INSTANT_TRACE("Many2OneChannel::enable  0003")
+    INSTANT_TRACE("")
     m_pAlt = pAlt;
 
     // always return false
@@ -413,7 +407,6 @@ Alternative * Alternative::create(Altable *c[], size_t len)
     Alternative *p = NULL;
     int r = 0;
     ec_extra_null( p = new (std::nothrow) Alternative(c, len) )
-    printf("Alternative is %x\n", p);
 
     ec_extra_nzero( r = p->init() )
 
@@ -459,38 +452,37 @@ void Alternative::finalize()
 int Alternative::select()
 {
     size_t bound = 0;
-    INSTANT_TRACE("Alternative::select")
+    INSTANT_TRACE("")
 
     m_state = eEnabling;
     for (bound = 0; bound < m_len; ++bound)
     {
-        INSTANT_TRACE("Alternative::select  000000010 for loop")
+        INSTANT_TRACE("")
         MutexLock aLock(m_sync);
         // nothing has been selected
         if (eReady != m_state)
         {
-            INSTANT_TRACE("Alternative::select  000000100")
-            printf("============ Alternative::select: m_p[%d] is %x\n", bound, m_c[bound]);
+            INSTANT_TRACE_FMT("m_p[%d] is %x", bound, m_c[bound]);
             if ((((Altable *)(m_c[bound]))->enable(this)))
             {
-                INSTANT_TRACE("Alternative::select  000000200")
+                INSTANT_TRACE("")
                 // one channel is ready for reading or
                 // one barrier is ready for sync
                 m_selector = m_c[bound];
                 m_state = eReady;
                 break;
             }
-            INSTANT_TRACE("Alternative::select  000000210")
+            INSTANT_TRACE("")
         }
         else
         {
-            INSTANT_TRACE("Alternative::select  000000310")
+            INSTANT_TRACE("")
             --bound;
             break;
         }
     }
 
-    INSTANT_TRACE("Alternative::select  000000400")
+    INSTANT_TRACE("")
 
     if (bound == m_len)
     {
@@ -501,15 +493,15 @@ int Alternative::select()
     {
         MutexLock aLock(m_sync);
         {
-            INSTANT_TRACE("Alternative::select  000000410")
+            INSTANT_TRACE("")
             if (eEnabling == m_state)
             {
-                INSTANT_TRACE("Alternative::select  000000420")
+                INSTANT_TRACE("")
                 m_state = eWaiting;
                 ec_rv_fatal( pthread_cond_wait(&m_cond, &m_sync) )
                 // m_state = eReady;
             }
-            INSTANT_TRACE("Alternative::select  000000430")
+            INSTANT_TRACE("")
         }
     }
 
@@ -517,21 +509,21 @@ int Alternative::select()
     // Now the state must be eReady
     for (int i = 0; i <= bound; ++i)
     {
-        INSTANT_TRACE("Alternative::select  000000500 for loop")
+        INSTANT_TRACE("")
         if (m_selector == m_c[i])
         {
             selected = i;
             m_c[i]->disable(true);
-            INSTANT_TRACE("Alternative::select  000000510")
+            INSTANT_TRACE("")
         }
         else
         {
-            INSTANT_TRACE("Alternative::select  000000520")
+            INSTANT_TRACE("")
             m_c[i]->disable(false);
         }
     }
 
-    INSTANT_TRACE("Alternative::select  000000600")
+    INSTANT_TRACE("")
     m_state = eInactive;
     return selected;
 }
@@ -561,7 +553,7 @@ bool Alternative::schedule(Altable *alt)
 
 void Barrier2::sync()
 {
-    INSTANT_TRACE("Barrier2::sync  000000000")
+    INSTANT_TRACE("")
     sem_wait(&m_sem);
     INSTANT_TRACE("Barrier2::sync  000000001")
     this->sync_sem();
@@ -613,7 +605,6 @@ Barrier2 * Barrier2::create()
     int r = 0;
 
     ec_extra_null( p = new (std::nothrow) Barrier2() )
-    printf("Barrier2 is %x\n", p);
 
     ec_extra_nzero( r = p->init() )
 
@@ -632,7 +623,6 @@ EC_CLEANUP_END
 // take the semaphore with it when return
 bool Barrier2::enable(Alternative *pAlt)
 {
-    printf("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n");
     INSTANT_TRACE("Barrier2::enable  0001")
     sem_wait(&m_sem);
     INSTANT_TRACE("Barrier2::enable  0002")

@@ -119,8 +119,10 @@ void ec_warn(void);
 // Just record the message with errno set to 0, which
 // indicates no error at all.
 void buffered_trace(const char*fcn, const char *file, int line,
-  const char *str);
+  const char *format, ...);
 
+void buffered_trace_v(const char*fcn, const char *file, int line,
+  const char *format, va_list ap);
 /*
  * rzq:
  * Just record the "str" in the chain
@@ -131,7 +133,14 @@ void buffered_trace(const char*fcn, const char *file, int line,
 // rzq: record the "str" in the chain and flush the chain
 #define INSTANT_TRACE(str) \
     buffered_trace(__func__, __FILE__, __LINE__, str); \
-    EC_FLUSH("")
+    EC_FLUSH("STRING here has no effect")
+
+#define BUFFERED_TRACE_FMT(fmt, ...) \
+    buffered_trace(__func__, __FILE__, __LINE__, fmt, ##__VA_ARGS__)
+
+#define INSTANT_TRACE_FMT(fmt, ...) \
+    buffered_trace(__func__, __FILE__, __LINE__, fmt, ##__VA_ARGS__); \
+    EC_FLUSH("STRING here has no effect")
 
 // rzq: no error information at all
 #define ec_extra_cmp(var, errrtn)\

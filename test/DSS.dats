@@ -1,5 +1,6 @@
 // staload "contrib/cspats/SATS/cspats.sats"
 staload "cspats/SATS/cspats.sats"
+staload "logtool/SATS/logtool.sats"
 
 // staload _(*template*) = "contrib/cspats/DATS/cspats.dats"
 staload _(*template*) = "cspats/DATS/cspats.dats"
@@ -34,13 +35,13 @@ extern fun CELL (
 // CSP: CELL = left?x.y -> shift -> right!x.y -> CELL
 implement CELL (left, shift, right) = let
   var req: req?
-  val () = printf ("=======CELL===00000000\n", @())
+  val () = instant_trace ("", "", 1, "=======CELL===00000000", @())
   val () = one2one_chan_in_read (left, req)
-  val () = printf ("=======CELL===00000001\n", @())
+  val () = instant_trace ("", "", 1, "=======CELL===00000001", @())
   val () = barrier2_sync (shift)
-  val () = printf ("=======CELL===00000002\n", @())
+  val () = instant_trace ("", "", 1, "=======CELL===00000002", @())
   val () = one2one_chan_out_write (right, req)
-  val () = printf ("=======CELL===00000003\n", @())
+  val () = instant_trace ("", "", 1, "=======CELL===00000003", @())
 in
   CELL (left, shift, right)
 end
@@ -60,18 +61,18 @@ extern fun BUFF (
 
 // CSP: BUFF = ((CELL[[right<-comm]]) [|{|comm|}|] (CELL[[left<-comm]])) \ {|comm|}
 implement BUFF (left, shift, right) = let
-  val () = printf ("=======BUFF===00000001\n", @())
+  val () = instant_trace ("", "", 1, "=======BUFF===00000001", @())
   val comm = one2one_chan_create {req} ()
-  val () = printf ("=======BUFF===00000002\n", @())
+  val () = instant_trace ("", "", 1, "=======BUFF===00000002", @())
   val+~ one2one_pair (comm_in, comm_out) = comm
-  val () = printf ("=======BUFF===00000003\n", @())
+  val () = instant_trace ("", "", 1, "=======BUFF===00000003", @())
 
   val shift2 = barrier2_ref (shift)
-  val () = printf ("=======BUFF===00000004\n", @())
+  val () = instant_trace ("", "", 1, "=======BUFF===00000004", @())
   val p1 = CELL_proc (left, shift, comm_out)
-  val () = printf ("=======BUFF===00000005\n", @())
+  val () = instant_trace ("", "", 1, "=======BUFF===00000005", @())
   val p2 = CELL_proc (comm_in, shift2, right)
-  val () = printf ("=======BUFF===00000006\n", @())
+  val () = instant_trace ("", "", 1, "=======BUFF===00000006", @())
 
   val () = para_run2 (p1, p2)
 in
@@ -95,11 +96,11 @@ fun DQ_2 (enq: one2one_chan_in (req),
                  right: one2one_chan_in (req),
                  next: one2one_chan_out (req)
                  ): void = let
-  val () = printf ("=======DQ_2===00000001\n", @())
+  val () = instant_trace ("", "", 1, "=======DQ_2===00000001", @())
   val () = barrier2_sync (deq)
-  val () = printf ("=======DQ_2===00000002\n", @())
+  val () = instant_trace ("", "", 1, "=======DQ_2===00000002", @())
   val () = barrier2_sync (shift)
-  val () = printf ("=======DQ_2===00000003\n", @())
+  val () = instant_trace ("", "", 1, "=======DQ_2===00000003", @())
 in
   X_i (2, enq, deq, shift, empty, left, right, next)
 end
@@ -117,39 +118,39 @@ and DQ_i {i: nat | i < 2} (i: int i,
                  right: one2one_chan_in (req),
                  next: one2one_chan_out (req)
                  ): void = let
-  val () = printf ("=======DQ_%d===00000001\n", @(i))
+  val () = instant_trace ("", "", 1, "=======DQ_%d===00000001", @(i))
   val (res_enq | enq_alt) = one2one_chan_in_2_alt (enq)
-  val () = printf ("=======DQ_%d===00000002\n", @(i))
+  val () = instant_trace ("", "", 1, "=======DQ_%d===00000002", @(i))
   val (res_deq | deq_alt) = barrier2_2_alt (deq)
-  val () = printf ("=======DQ_%d===00000003\n", @(i))
+  val () = instant_trace ("", "", 1, "=======DQ_%d===00000003", @(i))
   val (pf_sel | ret) = alternative_2 (enq_alt, deq_alt)
-  val () = printf ("=======DQ_%d===00000004\n", @(i))
+  val () = instant_trace ("", "", 1, "=======DQ_%d===00000004", @(i))
 in
   if ret = 0 then let
     var req: req?
-    val () = printf ("=======DQ_%d===00000011\n", @(i))
+    val () = instant_trace ("", "", 1, "=======DQ_%d===00000011", @(i))
     val enq = alt_one2one_chan_in_read (pf_sel, res_enq | enq_alt, req)
-    val () = printf ("=======DQ_%d===00000012\n", @(i))
+    val () = instant_trace ("", "", 1, "=======DQ_%d===00000012", @(i))
     val deq = alt_2_barrier2 (res_deq | deq_alt)
-    val () = printf ("=======DQ_%d===00000013\n", @(i))
+    val () = instant_trace ("", "", 1, "=======DQ_%d===00000013", @(i))
 
     val () = one2one_chan_out_write (left, req)
-    val () = printf ("=======DQ_%d===00000014\n", @(i))
+    val () = instant_trace ("", "", 1, "=======DQ_%d===00000014", @(i))
     val () = barrier2_sync (shift)
-    val () = printf ("=======DQ_%d===00000015\n", @(i))
+    val () = instant_trace ("", "", 1, "=======DQ_%d===00000015", @(i))
   in
     if i = 0 then DQ_i (1, enq, deq, shift, empty, left, right, next)
     else DQ_2 (enq, deq, shift, empty, left, right, next)
   end else let
-    val () = printf ("=======DQ_%d===00000021\n", @(i))
+    val () = instant_trace ("", "", 1, "=======DQ_%d===00000021", @(i))
     val deq = alt_barrier2_sync (pf_sel, res_deq | deq_alt)
-    val () = printf ("=======DQ_%d===00000022\n", @(i))
+    val () = instant_trace ("", "", 1, "=======DQ_%d===00000022", @(i))
     val enq = alt_2_one2one_chan_in (res_enq | enq_alt)
   in
     if i = 0 then let
-      val () = printf ("=======DQ_%d===00000031\n", @(i))
+      val () = instant_trace ("", "", 1, "=======DQ_%d===00000031", @(i))
       val () = barrier2_sync (empty)
-      val () = printf ("=======DQ_%d===00000032\n", @(i))
+      val () = instant_trace ("", "", 1, "=======DQ_%d===00000032", @(i))
     in
       DQ_i (0, enq, deq, shift, empty, left, right, next)
     end else
@@ -241,17 +242,17 @@ extern fun DCtrl (dci: one2one_chan_in (req),
 
 implement DCtrl (dci, dio, dint, dco) = let
   var req: req?
-  val () = printf ("=======DCtrl===00000001\n", @())
+  val () = instant_trace ("", "", 1, "=======DCtrl===00000001", @())
   val () = one2one_chan_in_read (dci, req)
-  val () = printf ("=======DCtrl===00000002\n", @())
+  val () = instant_trace ("", "", 1, "=======DCtrl===00000002", @())
   var blk = req_y (req)
-  val () = printf ("=======DCtrl===00000003\n", @())
+  val () = instant_trace ("", "", 1, "=======DCtrl===00000003", @())
   val () = one2one_chan_out_write (dio, blk)
-  val () = printf ("=======DCtrl===00000004\n", @())
+  val () = instant_trace ("", "", 1, "=======DCtrl===00000004", @())
   val () = barrier2_sync (dint)
-  val () = printf ("=======DCtrl===00000005\n", @())
+  val () = instant_trace ("", "", 1, "=======DCtrl===00000005", @())
   val () = one2one_chan_out_write (dco, req)
-  val () = printf ("=======DCtrl===00000006\n", @())
+  val () = instant_trace ("", "", 1, "=======DCtrl===00000006", @())
 in
   DCtrl (dci, dio, dint, dco)
 end
@@ -269,11 +270,11 @@ fun DCtrl_proc (dci: one2one_chan_in (req),
 extern fun Disk (dio: one2one_chan_in (int), dint: barrier2): void
 implement Disk (dio, dint) = let
   var blk: int?
-  val () = printf ("=======Disk===00000001\n", @())
+  val () = instant_trace ("", "", 1, "=======Disk===00000001", @())
   val () = one2one_chan_in_read (dio, blk)
-  val () = printf ("=======Disk===00000002\n", @())
+  val () = instant_trace ("", "", 1, "=======Disk===00000002", @())
   val () = barrier2_sync (dint)
-  val () = printf ("=======Disk===00000003\n", @())
+  val () = instant_trace ("", "", 1, "=======Disk===00000003", @())
 in
   Disk (dio, dint)
 end
@@ -294,11 +295,11 @@ fun DS_idle (ds: many2one_chan_in (req),
              next: one2one_chan_in (req)
             ): void = let
   var req: req?
-  val () = printf ("=======DSS_idle===00000001\n", @())
+  val () = instant_trace ("", "", 1, "=======DSS_idle===00000001", @())
   val () = many2one_chan_in_read (ds, req)
-  val () = printf ("=======DSS_idle===00000002\n", @())
+  val () = instant_trace ("", "", 1, "=======DSS_idle===00000002", @())
   val () = one2one_chan_out_write (dci, req)
-  val () = printf ("=======DSS_idle===00000003\n", @())
+  val () = instant_trace ("", "", 1, "=======DSS_idle===00000003", @())
 in
   DS_busy (ds, dci, dco, ack, enq, deq, empty, next)
 end
@@ -314,40 +315,40 @@ and DS_busy (ds: many2one_chan_in req,
              empty: barrier2,
              next: one2one_chan_in (req)
              ): void = let
-  val () = printf ("=======DSS_busy===00000001\n", @())
+  val () = instant_trace ("", "", 1, "=======DSS_busy===00000001", @())
   val (res_dco | dco_alt) = one2one_chan_in_2_alt (dco)
-  val () = printf ("=======DSS_busy===00000002\n", @())
+  val () = instant_trace ("", "", 1, "=======DSS_busy===00000002", @())
   val (res_ds | ds_alt) = many2one_chan_in_2_alt (ds)
-  val () = printf ("=======DSS_busy===00000003\n", @())
+  val () = instant_trace ("", "", 1, "=======DSS_busy===00000003", @())
   val (pf_sel | ret) = alternative_2 (dco_alt, ds_alt)
-  val () = printf ("=======DSS_busy===00000004\n", @())
+  val () = instant_trace ("", "", 1, "=======DSS_busy===00000004", @())
   var req: req?
 in
   if ret = 0 then let
-    val () = printf ("=======DSS_busy===00000010\n", @())
+    val () = instant_trace ("", "", 1, "=======DSS_busy===00000010", @())
     val dco = alt_one2one_chan_in_read (pf_sel, res_dco | dco_alt, req)
-    val () = printf ("=======DSS_busy===00000011\n", @())
+    val () = instant_trace ("", "", 1, "=======DSS_busy===00000011", @())
     val ds = alt_2_many2one_chan_in (res_ds | ds_alt)
-    val () = printf ("=======DSS_busy===00000012\n", @())
+    val () = instant_trace ("", "", 1, "=======DSS_busy===00000012", @())
     var cl = req_x (req)
-    val () = printf ("=======DSS_busy===00000013\n", @())
+    val () = instant_trace ("", "", 1, "=======DSS_busy===00000013", @())
     prval () = release_req (req)
-    val () = printf ("=======DSS_busy===00000014\n", @())
+    val () = instant_trace ("", "", 1, "=======DSS_busy===00000014", @())
 
     fun cmp (x: &int, y: &int): bool = x = y
     var i: int?
     val () = many2one_chan_in_cond_read (ack, i, cmp, cl)
-    val () = printf ("=======DSS_busy===00000015\n", @())
+    val () = instant_trace ("", "", 1, "=======DSS_busy===00000015", @())
   in
     DS_check (ds, dci, dco, ack, enq, deq, empty, next)
   end else let
-    val () = printf ("=======DSS_busy===00000021\n", @())
+    val () = instant_trace ("", "", 1, "=======DSS_busy===00000021", @())
     val ds = alt_many2one_chan_in_read (pf_sel, res_ds | ds_alt, req)
-    val () = printf ("=======DSS_busy===00000022\n", @())
+    val () = instant_trace ("", "", 1, "=======DSS_busy===00000022", @())
     val dco = alt_2_one2one_chan_in (res_dco | dco_alt)
-    val () = printf ("=======DSS_busy===00000023\n", @())
+    val () = instant_trace ("", "", 1, "=======DSS_busy===00000023", @())
     val () = one2one_chan_out_write (enq, req)
-    val () = printf ("=======DSS_busy===00000024\n", @())
+    val () = instant_trace ("", "", 1, "=======DSS_busy===00000024", @())
   in
     DS_busy (ds, dci, dco, ack, enq, deq, empty, next)
   end
@@ -364,33 +365,33 @@ and DS_check (ds: many2one_chan_in req,
              empty: barrier2,
              next: one2one_chan_in (req)
              ): void = let
-  val () = printf ("=======DSS_check===00000000\n", @())
+  val () = instant_trace ("", "", 1, "=======DSS_check===00000000", @())
   val () = barrier2_sync (deq)
-  val () = printf ("=======DSS_check===00000001\n", @())
+  val () = instant_trace ("", "", 1, "=======DSS_check===00000001", @())
   val (res_empty | empty_alt) = barrier2_2_alt (empty)
-  val () = printf ("=======DSS_check===00000002\n", @())
+  val () = instant_trace ("", "", 1, "=======DSS_check===00000002", @())
   val (res_next | next_alt) = one2one_chan_in_2_alt (next)
-  val () = printf ("=======DSS_check===00000003\n", @())
+  val () = instant_trace ("", "", 1, "=======DSS_check===00000003", @())
   val (pf_sel | ret) = alternative_2 (empty_alt, next_alt)
-  val () = printf ("=======DSS_check===00000004\n", @())
+  val () = instant_trace ("", "", 1, "=======DSS_check===00000004", @())
 in
   if ret = 0 then let
-    val () = printf ("=======DSS_check===00000005\n", @())
+    val () = instant_trace ("", "", 1, "=======DSS_check===00000005", @())
     val empty = alt_barrier2_sync (pf_sel, res_empty | empty_alt)
-    val () = printf ("=======DSS_check===00000006\n", @())
+    val () = instant_trace ("", "", 1, "=======DSS_check===00000006", @())
     val next = alt_2_one2one_chan_in (res_next | next_alt)
-    val () = printf ("=======DSS_check===00000007\n", @())
+    val () = instant_trace ("", "", 1, "=======DSS_check===00000007", @())
   in
     DS_idle (ds, dci, dco, ack, enq, deq, empty, next)
   end else let
     var req: req?
-    val () = printf ("=======DSS_check===00000011\n", @())
+    val () = instant_trace ("", "", 1, "=======DSS_check===00000011", @())
     val next = alt_one2one_chan_in_read (pf_sel, res_next | next_alt, req)
-    val () = printf ("=======DSS_check===00000012\n", @())
+    val () = instant_trace ("", "", 1, "=======DSS_check===00000012", @())
     val empty = alt_2_barrier2 (res_empty | empty_alt)
-    val () = printf ("=======DSS_check===00000013\n", @())
+    val () = instant_trace ("", "", 1, "=======DSS_check===00000013", @())
     val () = one2one_chan_out_write (dci, req)
-    val () = printf ("=======DSS_check===00000014\n", @())
+    val () = instant_trace ("", "", 1, "=======DSS_check===00000014", @())
   in
     DS_busy (ds, dci, dco, ack, enq, deq, empty, next)
   end
@@ -426,35 +427,35 @@ fun DSS_proc (ds: many2one_chan_in req,
   lam () =<lin, cloptr1> DSS (ds, ack)
 
 implement DSS (ds, ack) = let
-  val () = printf ("=======DSS===00000000\n", @())
+  val () = instant_trace ("", "", 1, "=======DSS===00000000", @())
   val+~ one2one_pair (enq_in, enq_out) = one2one_chan_create {req} ()
-  val () = printf ("=======DSS===00000001\n", @())
+  val () = instant_trace ("", "", 1, "=======DSS===00000001", @())
 
   val deq1 = barrier2_create ()
-  val () = printf ("=======DSS===00000002\n", @())
+  val () = instant_trace ("", "", 1, "=======DSS===00000002", @())
   val deq2 = barrier2_ref (deq1)
-  val () = printf ("=======DSS===00000003\n", @())
+  val () = instant_trace ("", "", 1, "=======DSS===00000003", @())
 
   val+~ one2one_pair (next_in, next_out) = one2one_chan_create {req} ()
-  val () = printf ("=======DSS===00000004\n", @())
+  val () = instant_trace ("", "", 1, "=======DSS===00000004", @())
 
   val empty1 = barrier2_create ()
-  val () = printf ("=======DSS===00000005\n", @())
+  val () = instant_trace ("", "", 1, "=======DSS===00000005", @())
   val empty2 = barrier2_ref (empty1)
-  val () = printf ("=======DSS===00000006\n", @())
+  val () = instant_trace ("", "", 1, "=======DSS===00000006", @())
 
   val+~ one2one_pair (dci_in, dci_out) = one2one_chan_create {req} ()
-  val () = printf ("=======DSS===00000007\n", @())
+  val () = instant_trace ("", "", 1, "=======DSS===00000007", @())
   val+~ one2one_pair (dco_in, dco_out) = one2one_chan_create {req} ()
-  val () = printf ("=======DSS===00000008\n", @())
+  val () = instant_trace ("", "", 1, "=======DSS===00000008", @())
 
   val+~ one2one_pair (dio_in, dio_out) = one2one_chan_create {int} ()
-  val () = printf ("=======DSS===00000009\n", @())
+  val () = instant_trace ("", "", 1, "=======DSS===00000009", @())
 
   val dint1 = barrier2_create ()
-  val () = printf ("=======DSS===00000010\n", @())
+  val () = instant_trace ("", "", 1, "=======DSS===00000010", @())
   val dint2 = barrier2_ref (dint1)
-  val () = printf ("=======DSS===00000011\n", @())
+  val () = instant_trace ("", "", 1, "=======DSS===00000011", @())
 
   val p1 = DSched_proc (ds, dci_out, dco_in, ack, enq_out, deq2, empty1, next_in)
   val p2 = DQueue_proc (enq_in, deq1, empty2, next_out)
@@ -475,23 +476,23 @@ extern fun C_i {i,j: int} (i: int i, j: int j,
 
 implement C_i {i,j} (i, j, ds, ack) = let
   val j = i
-  val () = printf ("=======C_%d===00000000\n", @(j))
+  val () = instant_trace ("", "", 1, "=======C_%d===00000000", @(j))
   var areq: req = create_req (i, 1)
-  val () = printf ("=======C_%d===00000001\n", @(j))
+  val () = instant_trace ("", "", 1, "=======C_%d===00000001", @(j))
   val () = many2one_chan_out_write {req} (ds, areq)
-  val () = printf ("=======C_%d===00000002\n", @(j))
+  val () = instant_trace ("", "", 1, "=======C_%d===00000002", @(j))
 
   // something like moreone
-  val () = printf ("This is C_%d\n", @(j))
+  val () = instant_trace ("", "", 1, "This is C_%d", @(j))
 
   var i = i
   val () = many2one_chan_out_write {int} (ack, i)
-  val () = printf ("=======C_%d===00000003\n", @(j))
+  val () = instant_trace ("", "", 1, "=======C_%d===00000003", @(j))
 
   val () = many2one_chan_out_unref{req} (ds)
-  val () = printf ("=======C_%d===00000004\n", @(j))
+  val () = instant_trace ("", "", 1, "=======C_%d===00000004", @(j))
   val () = many2one_chan_out_unref{int} (ack)
-  val () = printf ("This is C_%d end\n", @(j))
+  val () = instant_trace ("", "", 1, "This is C_%d end", @(j))
 in end
 
 fun C_i_proc {i,j: int} (i: int i, j: int j,
@@ -511,26 +512,28 @@ extern fun SYS (): void
 
 implement SYS () = let
   val+~ many2one_pair (ds_in, ds_out) = many2one_chan_create {req} ()
-  val () = printf ("============00000000\n", @())
+  val () = instant_trace ("", "", 1, "============00000000", @())
   val ds_out2 = many2one_chan_out_ref (ds_out)
-  val () = printf ("============00000001\n", @())
+  val () = instant_trace ("", "", 1, "============00000001", @())
+  val ds_out3 = many2one_chan_out_ref (ds_out)
 
   val+~ many2one_pair (ack_in, ack_out) = many2one_chan_create {int} ()
-  val () = printf ("============00000002\n", @())
+  val () = instant_trace ("", "", 1, "============00000002", @())
   val ack_out2 = many2one_chan_out_ref (ack_out)
-  val () = printf ("============00000003\n", @())
+  val () = instant_trace ("", "", 1, "============00000003", @())
+  val ack_out3 = many2one_chan_out_ref (ack_out)
 
   val pc1 = C_i_proc (1, 2, ds_out, ack_out)
-  val () = printf ("============00000004\n", @())
+  val () = instant_trace ("", "", 1, "============00000004", @())
   val pc2 = C_i_proc (2, 3, ds_out2, ack_out2)
-  val () = printf ("============00000005\n", @())
+  val () = instant_trace ("", "", 1, "============00000005", @())
+  val pc3 = C_i_proc (3, 4, ds_out3, ack_out3)
 
   val pdss = DSS_proc (ds_in, ack_in)
-  val () = printf ("============00000006\n", @())
+  val () = instant_trace ("", "", 1, "============00000006", @())
 
-  val () =  para_run3 (pc1, pc2, pdss)
-  // val () =  para_run2 (pc1, pdss)
-  val () = printf ("============00000007\n", @())
+  val () =  para_run4 (pc1, pc2, pc3, pdss)
+  val () = instant_trace ("", "", 1, "============00000007", @())
 in
 end
 

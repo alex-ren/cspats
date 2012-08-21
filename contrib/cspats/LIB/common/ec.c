@@ -64,6 +64,7 @@ static char ec_s_emergency[100];
 
 const bool ec_in_cleanup = false;
 /*[ec_push]*/
+
 #define SEP1 " ["
 #define SEP2 ":"
 #define SEP3 "] "
@@ -122,7 +123,7 @@ void ec_print(void)
 
     ec_mutex(true);
     for (e = ec_head; e != NULL; e = e->ec_next, level++) {
-        char buf[200], buf2[25 + sizeof(buf)];
+        char buf[300], buf2[25 + sizeof(buf)];
 
         if (e == &ec_node_emergency)
             fprintf(stderr, "\t*** Trace may be incomplete ***\n");
@@ -132,7 +133,7 @@ void ec_print(void)
           e->ec_next == NULL ? e->ec_errno : 0, e->ec_type);
         snprintf(buf2, sizeof(buf2), "%s\t%d: %s",
           // rzq: (level == 0? "ERROR:" : ""), level, buf);
-           (e->ec_errno != 0? "ERROR:" : ""), level, buf);
+           (e->ec_errno != 0? "ERROR:" : "TRACE:"), level, buf);
         fprintf(stderr, "%s\n", buf2);
         logfmt(buf2);
     }
@@ -163,22 +164,39 @@ void ec_warn(void)
 }
 /*[]*/
 
-
 void buffered_trace(const char *fcn, const char *file, int line,
-  const char *str)
+  const char *format, ...)
+{
+    va_list ap;
+    va_start(ap, format);
+    buffered_trace_v(fcn, file, line, format, ap);
+    va_end(ap);
+    return;
+}
+
+
+void buffered_trace_v(const char *fcn, const char *file, int line,
+  const char *format, va_list ap)
 {
     struct ec_node node, *p;
-    size_t len;
+    size_t len = 0;
     static bool attexit_called = false;
 
     ec_mutex(true);
+
+#define BUFFER_SZ 300
+    static char buffer[BUFFER_SZ] = {};
+
+    len = snprintf(buffer, BUFFER_SZ, "%s [%s:%d] [tid:%6u] ", 
+                   fcn, file, line, pthread_self());
+    len += vsnprintf(buffer + len, BUFFER_SZ - len, format, ap);
+
+    len += 1;  // add the trailing '\n'
+
     node.ec_errno = 0;  // rzq: indicating this is not error
                         // hence no query for errno at all
     node.ec_type = EC_NONE;  // rzq: any value would suffice
-    if (str == NULL)
-        str = "";
-    len = strlen(fcn) + strlen(SEP1) + strlen(file) + strlen(SEP2) +
-      6 + strlen(SEP3) + strlen(str) + 1;
+
     node.ec_context = (char *)calloc(1, len);
     if (node.ec_context == NULL) {
         if (ec_s_emergency[0] == '\0')
@@ -186,11 +204,12 @@ void buffered_trace(const char *fcn, const char *file, int line,
         else
             // rzq: why? Seems to be a bug.
             node.ec_context = "?";
-        len = sizeof(ec_s_emergency);
+        len = len < sizeof(ec_s_emergency)? len: sizeof(ec_s_emergency);
     }
     if (node.ec_context != NULL)
-        snprintf(node.ec_context, len, "%s%s%s%s%d%s%s", fcn, SEP1,
-          file, SEP2, line, SEP3, str);
+    {
+        memcpy(node.ec_context, buffer, len);
+    }
     p = (struct ec_node *)calloc(1, sizeof(struct ec_node));
     // rzq: When it fails for the second, no error msg would be recorded.
     if (p == NULL && ec_node_emergency.ec_context == NULL)
@@ -198,7 +217,7 @@ void buffered_trace(const char *fcn, const char *file, int line,
     if (p != NULL) {
         node.ec_next = ec_head;
         ec_head = p;
-        *ec_head = node;
+        *ec_head = node;  // rzq: copy the node from stack to heap
     }
     if (!attexit_called) {
         attexit_called = true;

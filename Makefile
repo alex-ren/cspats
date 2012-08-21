@@ -65,14 +65,6 @@ subdirectory = $(patsubst %/module.mk,%,    \
 
 #= functions for building specific target =================================
 # ------------------------------------------------------
-# $(call make-library, library-name, source-file-list)
-define make-library
-  libraries += $1
-  sources   += $2
-
-  $1: $(call source-to-object,$2)
-	$(AR) $(ARFLAGS) $$@ $$^
-endef
 
 # ------------------------------------------------------
 # $(call make-ec_library, library-name, source-file-list)
@@ -100,19 +92,8 @@ define make-cspcpp_library
   cspcpp_lib += $1
   sources    += $2
 
-  $1: $(call source-to-object,$2) $(ec_lib)
-	cp $(ec_lib) $$@
-	$(AR) $(ARFLAGS) $$@ $(call source-to-object,$2)
-endef
-
-# ------------------------------------------------------
-# $(call make-cspats_library, library-name, source-file-list)
-define make-cspats_library
-  cspats_lib += $1
-  sources    += $2
-
-  $1: $(call source-to-object,$2) $(cspcpp_lib)
-	cp $(cspcpp_lib) $$@
+  $1: $(call source-to-object,$2)
+#	cp $(ec_lib) $$@
 	$(AR) $(ARFLAGS) $$@ $(call source-to-object,$2)
 endef
 
@@ -122,20 +103,46 @@ define make-cspcpp_test
   cspcpp_test += $1
   sources  += $2
 
-  $1: $(call source-to-object,$2) $(cspcpp_lib)
+  $1: $(call source-to-object,$2) $(cspcpp_lib) $(ec_lib)
 	$(CC) -o $$@ $(call source-to-object,$2) \
           -l$(patsubst lib%.a,%,$(notdir $(cspcpp_lib))) -L$(dir $(cspcpp_lib)) \
+          -l$(patsubst lib%.a,%,$(notdir $(ec_lib))) -L$(dir $(ec_lib)) \
           -lstdc++ -pthread
 endef
+
+# ------------------------------------------------------
+# $(call make-logtool_library, library-name, source-file-list)
+define make-logtool_library
+  logtool_lib += $1
+  sources    += $2
+
+  $1: $(call source-to-object,$2)
+	$(AR) $(ARFLAGS) $$@ $(call source-to-object,$2)
+endef
+
+# ------------------------------------------------------
+# $(call make-cspats_library, library-name, source-file-list)
+define make-cspats_library
+  cspats_lib += $1
+  sources    += $2
+
+  $1: $(call source-to-object,$2)
+#	cp $(cspcpp_lib) $$@
+	$(AR) $(ARFLAGS) $$@ $(call source-to-object,$2)
+endef
+
 # ------------------------------------------------------
 # $(call make-cspprogram, program-name, source-file-list)
 define make-cspprogram
   programs += $1
   sources  += $2
 
-  $1: $(call source-to-object,$2) $(cspats_lib)
+  $1: $(call source-to-object,$2) $(cspats_lib) $(logtool_lib) $(cspcpp_lib) $(ec_lib)
 	$(ATSCC) -o $$@ $$(filter %.o,$$^) \
           -l$(patsubst lib%.a,%,$(notdir $(cspats_lib))) -L$(dir $(cspats_lib)) \
+          -l$(patsubst lib%.a,%,$(notdir $(cspcpp_lib))) -L$(dir $(cspcpp_lib)) \
+          -l$(patsubst lib%.a,%,$(notdir $(logtool_lib))) -L$(dir $(logtool_lib)) \
+          -l$(patsubst lib%.a,%,$(notdir $(ec_lib))) -L$(dir $(ec_lib)) \
           -lstdc++ -pthread
 endef
 
@@ -144,13 +151,14 @@ endef
 # Collect information from each module in these four variables.
 # Initialize them here as simple variables
 
-modules   := contrib/cspats contrib/cspats/LIB contrib/cspats/LIB/common test
+modules   := contrib/cspats contrib/logtool contrib/cspats/LIB contrib/cspats/LIB/common test
 programs  :=
 ec_lib    :=
 ec_test   :=
 cspcpp_lib:=
 cspcpp_test:=
 cspats_lib:=
+logtool_lib:=
 libraries :=
 sources   :=
 
@@ -198,10 +206,11 @@ all:
 include contrib/cspats/LIB/common/module.mk
 include contrib/cspats/LIB/module.mk
 include contrib/cspats/module.mk
+include contrib/logtool/module.mk
 include test/module.mk
 
 # The following must be after the "include".
-libraries += $(ec_lib) $(cspcpp_lib) $(cspats_lib)
+libraries += $(ec_lib) $(cspcpp_lib) $(cspats_lib) $(logtool_lib)
 lib_test += $(ec_test) $(cspcpp_test)
 
 # =targets ========================================
@@ -226,6 +235,9 @@ cspcpp_test: $(cspcpp_test)
 
 .PHONY: cspats_lib
 cspats_lib: $(cspats_lib)
+
+.PHONY: logtool_lib
+logtool_lib: $(logtool_lib)
 
 .PHONY: clean
 clean:

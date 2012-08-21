@@ -10,6 +10,9 @@ extern "C" {
 void logfmt_setpath(const char *path);
 void logfmt(const char *format, ...);
 void logfmt_args(int argc, char *argv[]);
+/*
+ * Once set to false, logfmt will not write log into file.
+ */
 void logfmt_enable(bool enable);
 
 

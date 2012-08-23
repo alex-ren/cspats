@@ -1,0 +1,356 @@
+#comment("Author: Zhiqiang Ren\
+Date: 07/14/2012\
+")
+
+#decltitle("\
+ATSLIB/contrib/cspats
+")
+
+(* ****** ****** *)
+
+#declpreamble("\
+This package contains some common functions for Process Oriented Programming style.
+")
+
+#comment("============================================")
+
+#declnamesynop("one2one_chan_in")
+#declsynop2("\
+#para('\
+
+This is the type for the read end of an one-to-one channel. It\'s full name is
+is #stacode("one2one_chan_in_vt0ype_int"), which is an abstract boxed linear datatype \
+(viewtype) declared as follows:
+
+#pats2xhtmls('\
+absviewtype // viewt@ype+: covariant
+one2one_chan_in_vt0ype_int (a:viewt@ype+, tag: int)
+
+stadef one2one_chan_in = one2one_chan_in_vt0ype_int
+') #comment("end of pats2xhtmls")
+') #comment("end of para")
+") 
+
+#decldescrpt("\
+Since it's the read end of an one-to-one channel, there's no function for duplicating \
+instance of this type.
+")
+
+#comment("============================================")
+
+#declnamesynop("one2one_chan_out")
+#declsynop2("\
+#para('\
+
+This is the type for the write end of an one-to-one channel. It\'s full name is
+is #stacode("one2one_chan_out_vt0ype_int"), which is an abstract boxed linear datatype \
+(viewtype) declared as follows:
+
+#pats2xhtmls('\
+absviewtype // viewt@ype+: covariant
+one2one_chan_out_vt0ype_int (a:viewt@ype+, tag: int)
+
+stadef one2one_chan_out = one2one_chan_out_vt0ype_int
+') #comment("end of pats2xhtmls")
+') #comment("end of para")
+") 
+
+#decldescrpt("\
+Since it's the write end of an one-to-one channel, there's no function for duplicating \
+instance of this type.
+")
+
+#comment("============================================")
+
+#declnamesynop("one2one_chan")
+#declsynop2("\
+#para('\
+
+This is the type for an one-to-one channel. It\'s full name is
+is #stacode("one2one_chan_vt0ype_int"), which is an abstract boxed linear datatype \
+(viewtype) declared as follows:
+
+
+#pats2xhtmls('\
+dataviewtype // viewt@ype+: covariant
+  one2one_chan_vt0ype_int (a:viewt@ype+, int) = 
+| {tag:int} Pair (a, tag) of (
+  one2one_chan_in (a, tag), one2one_chan_out (a, tag))
+// end of [one2one_chan_vt0ype_int]
+
+stadef one2one_chan = one2one_chan_vt0ype_int
+') #comment("end of pats2xhtmls")
+') #comment("end of para")
+") 
+
+#decldescrpt("\
+Since it's an one-to-one channel, there's no function for duplicating \
+instance of this type.
+")
+
+#comment("============================================")
+
+#declnamesynop("one2one_chan_create")
+
+#decldescrpt("\
+This function creates an one-to-one channel, from which we can get the \
+read and write ends for communication.
+")
+#declexample("\
+#pats2xhtmld('\
+val ch = one2one_chan_create {int} ()
+val+~ Pair (chin, chout) = ch
+')
+")
+
+#comment("============================================")
+
+#declnamesynop("one2one_chan_in_release")
+
+#decldescrpt("\
+This function releases the read end of an one-to-one channel.
+")
+
+#comment("============================================")
+
+#declnamesynop("one2one_chan_out_release")
+
+#decldescrpt("\
+This function releases the write end of an one-to-one channel.
+")
+
+#comment("============================================")
+
+#declnamesynop("one2one_chan_in_read")
+
+#decldescrpt("\
+This function reads data from the read end of an one-to-one channel. \
+Operator >> is overloaded for this function. The read operation is \
+blocked until synchronized with the write operation at the write \
+end of the channel.
+")
+
+#declexample("\
+#pats2xhtmld('\
+fun read_chan (chin: one2one_chan_in int): void = let
+  var x: int?
+  val () = one2one_chan_in_read<int> (chin, x)
+  val () = printf ("read an int: %d\\\n", @(x))
+
+  val () = one2one_chan_in_release (chin)
+in end
+')
+")
+
+#comment("============================================")
+
+#declnamesynop("one2one_chan_out_write")
+
+#decldescrpt("\
+This function writes data to the write end of an one-to-one channel. \
+Operator << is overloaded for this function. The write operation is \
+blocked until synchronized with the read operation at the read \
+end of the channel.
+")
+
+#declexample("\
+#pats2xhtmld('\
+fun write_chan (chout: one2one_chan_out int): void = let
+  val x: int = 0
+  val () = printf ("write an int: %d\\\n", @(x))
+  val () = one2one_chan_out_write (chout, x)
+
+  val () = one2one_chan_out_release (chout)
+in end
+')
+")
+
+#comment("============================================")
+
+#declnamesynop("many2one_chan_in")
+#declsynop2("\
+#para('\
+
+This is the type for the read end of an many-to-one channel. It\'s full name is
+is #stacode("many2one_chan_in_vt0ype_int"), which is an abstract boxed linear datatype \
+(viewtype) declared as follows:
+
+#pats2xhtmls('\
+absviewtype // viewt@ype+: covariant
+many2one_chan_in_vt0ype_int (a:viewt@ype+, tag: int)
+
+stadef many2one_chan_in = many2one_chan_in_vt0ype_int
+') #comment("end of pats2xhtmls")
+') #comment("end of para")
+") 
+
+#decldescrpt("\
+Since it's the read end of an many-to-one channel, there's no function for duplicating \
+instance of this type.
+")
+
+#comment("============================================")
+
+#declnamesynop("many2one_chan_out")
+#declsynop2("\
+#para('\
+
+This is the type for the write end of an many-to-one channel. It\'s full name is
+is #stacode("many2one_chan_out_vt0ype_int"), which is an abstract boxed linear datatype \
+(viewtype) declared as follows:
+
+#pats2xhtmls('\
+absviewtype // viewt@ype+: covariant
+many2one_chan_out_vt0ype_int (a:viewt@ype+, tag: int)
+
+stadef many2one_chan_out = many2one_chan_out_vt0ype_int
+') #comment("end of pats2xhtmls")
+') #comment("end of para")
+") 
+
+#decldescrpt("\
+Since it's the write end of an many-to-one channel, there's function for duplicating \
+instance of this type so that we can have multiple writers to the channel.
+")
+
+#comment("============================================")
+
+#declnamesynop("many2one_chan")
+#declsynop2("\
+#para('\
+
+This is the type for a many-to-one channel, which supports \
+multiple writers and only one reader to the channel.  It\'s full name \
+is #stacode("many2one_chan_vt0ype_int"), which is an abstract boxed linear datatype \
+(viewtype) declared as follows:
+
+#pats2xhtmls('\
+dataviewtype // viewt@ype+: covariant
+  many2one_chan_vt0ype_int (a:viewt@ype+, int) = 
+| {tag:int} Pair (a, tag) of (
+  many2one_chan_in (a, tag), many2one_chan_out (a, tag))
+// end of [many2one_chan_vt0ype_int]
+
+stadef many2one_chan = many2one_chan_vt0ype_int
+') #comment("end of pats2xhtmls")
+') #comment("end of para")
+") 
+
+#decldescrpt("\
+There's no function for duplicating instance of this type.
+")
+
+#comment("============================================")
+
+#declnamesynop("many2one_chan_create")
+
+#decldescrpt("\
+This function creates an many-to-one channel, from which we can get the \
+read and write ends for communication.
+")
+#declexample("\
+#pats2xhtmld('\
+val ch = many2one_chan_create {int} ()
+val+~ Pair (chin, chout) = ch
+')
+")
+
+#comment("============================================")
+
+#declnamesynop("many2one_chan_in_unref")
+
+#decldescrpt("\
+This function releases the read end of an many-to-one channel.
+")
+
+#comment("============================================")
+
+#declnamesynop("many2one_chan_out_unref")
+
+#decldescrpt("\
+This function releases the write end of an many-to-one channel.
+")
+
+#comment("============================================")
+
+#declnamesynop("many2one_chan_out_ref")
+
+#decldescrpt("\
+This function duplicates the write end of an many-to-one channel.
+")
+
+#comment("============================================")
+
+#declnamesynop("many2one_chan_in_read")
+
+#decldescrpt("\
+This function reads data from the read end of an many-to-one channel. \
+Operator >> is overloaded for this function. The read operation is \
+blocked until synchronized with the write operation at the write \
+end of the channel. If there is more than one write operations blocked \
+at the write end, only one of them gets synchronized with the read \
+operation. The other write opreations still get blocked until further \
+read operation occurrs.
+")
+
+#declexample("\
+#pats2xhtmld('\
+fun read_chan (chin: many2one_chan_in int): void = let
+  var x: int?
+  val () = many2one_chan_in_read<int> (chin, x)
+  val () = printf ("read an int: %d\\\n", @(x))
+
+  val () = many2one_chan_in_release (chin)
+in end
+')
+")
+
+#comment("============================================")
+
+#declnamesynop("many2one_chan_out_write")
+
+#decldescrpt("\
+This function writes data to the write end of an many-to-one channel. \
+Operator << is overloaded for this function. The write operation is \
+blocked until synchronized with the read operation at the read \
+end of the channel.
+")
+
+#declexample("\
+#pats2xhtmld('\
+fun write_chan (chout: many2one_chan_out int): void = let
+  val x: int = 0
+  val () = printf ("write an int: %d\\\n", @(x))
+  val () = many2one_chan_out_write (chout, x)
+
+  val () = many2one_chan_out_release (chout)
+in end
+')
+")
+
+#comment("============================================")
+
+#declexample("\
+
+The following code implements a function that combines two given
+linear option-values into a single one:
+
+#pats2xhtmld_tryit('\
+fun{
+a1,a2:t0p
+} option_vt_zip {b1,b2:bool} (
+  opt1: option_vt (a1, b1), opt2: option_vt (a2, b2)
+) : option_vt (@(a1, a2), b1*b2) =
+  case+ opt1 of
+  | ~Some_vt (x1) => (
+    case+ opt2 of
+    | ~Some_vt (x2) => Some_vt @(x1, x2) | ~None_vt () => None_vt ()
+    )
+  | ~None_vt () => let
+      val () = option_vt_free (opt2) in None_vt ()
+    end // end of [None_vt]
+// end of [option_vt_zip]
+')
+")
+
+

@@ -1,0 +1,12 @@
+Instructions to generate the documentation files.
+1. 
+make -f ../../../../share/Makefile.gen
+
+2.
+make -f ../../../../share/Makefile.gen clean
+
+3.
+make -f Makefile
+
+
+

@@ -185,7 +185,6 @@ end
 ** fun one2one_chan_create_err {a:vt0p} (
 **   ch: &one2one_chan? >> opt (one2one_chan (a), e == 0) ): #[e: int] int e
 *)
-(*  todo
 implement one2one_chan_create_err {a} (ch) = let
   var ch_in: one2one_chan_io (a) ?
   val e = one2one_chan_io_create_err {a} (ch_in)
@@ -194,19 +193,19 @@ in
     prval () = opt_unsome {one2one_chan_io (a)} (ch_in)
     val ch_out = one2one_chan_io_ref (ch_in)
     val ch_in = one2one_chan_io_2_in (ch_in)
-    val ch_out = one2one_chan_io_2_o (ch_out)
+    val ch_out = one2one_chan_io_2_out (ch_out)
 
     val () = ch := one2one_pair (ch_in, ch_out)
     prval () = opt_some {one2one_chan (a)} (ch)
   in
     e
   end else let
+    prval () = opt_unnone (ch_in)
     prval () = opt_none {one2one_chan (a)} (ch)
   in
     e
   end
 end
-*)
 
 (* ****************** ******************** *)
 
@@ -278,28 +277,27 @@ end
 ** fun many2one_chan_create_err {a:vt0p} (
 **   ch: &many2one_chan? >> opt (many2one_chan (a), e == 0) ): #[e: int] int e
 *)
-(*  todo
 implement many2one_chan_create_err {a} (ch) = let
-  var ch_in: many2one_chan_io (a) ?
+  var ch_in: many2one_chan_io (a)?
   val e = many2one_chan_io_create_err {a} (ch_in)
 in
   if e = 0 then let
     prval () = opt_unsome {many2one_chan_io (a)} (ch_in)
     val ch_out = many2one_chan_io_ref (ch_in)
     val ch_in = many2one_chan_io_2_in (ch_in)
-    val ch_out = many2one_chan_io_2_o (ch_out)
+    val ch_out = many2one_chan_io_2_out (ch_out)
 
     val () = ch := many2one_pair (ch_in, ch_out)
     prval () = opt_some {many2one_chan (a)} (ch)
   in
     e
   end else let
+    prval () = opt_unnone (ch_in)
     prval () = opt_none {many2one_chan (a)} (ch)
   in
     e
   end
 end
-*)
 
 (* ****************** ******************** *)
 

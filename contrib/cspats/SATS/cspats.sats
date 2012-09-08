@@ -48,11 +48,10 @@
 
 (* ****** ****** *)
 
-
-(* ****** ****** *)
-
 sortdef vtp = viewtype
 sortdef vt0p = viewt@ype
+
+(* ****** ****** *)
 
 absviewtype // viewt@ype: invariant
   one2one_chan_in_vt0ype_int (a:viewt@ype, tag:int)
@@ -174,7 +173,7 @@ viewtypedef many2one_chan (a: vt0p) =
 fun many2one_chan_create {a:vt0p} (): many2one_chan (a)
 
 (*
-** Name one2one_chan_create_err
+** Name many2one_chan_create_err
 *)
 fun many2one_chan_create_err {a:vt0p} (
   ch: &many2one_chan (a)? >> opt (many2one_chan (a), e == 0) ): #[e: int] int e

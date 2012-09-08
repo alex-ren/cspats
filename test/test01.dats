@@ -1,33 +1,88 @@
 staload "cspats/SATS/cspats.sats"
 staload _ = "cspats/DATS/cspats.dats"
 
-implement main () = let
-  val+~ one2one_pair (ack_in, ack_out) = one2one_chan_create {int} ()
-  val bar = barrier2_create ()
+// fun read_int_chan (chin: !one2one_chan_in int): void = let
+//   var x: int?
+//   val () = one2one_chan_in_read<int> (chin, x)
+//   val () = printf ("read an int: %d\n", @(x))
+// in end
+// 
+// 
+// fun read_int_chan_tsz (chin: !one2one_chan_in int): void = let
+//   var x: int?
+//   val () = one2one_chan_in_read_tsz (chin, x, sizeof<int>)
+//   val () = printf ("read an int: %d\n", @(x))
+// in end
+// 
+// 
+// fun write_int_chan (chout: !one2one_chan_out int): void = let
+//   var x: int = 0
+//   val () = printf ("write an int: %d\n", @(x))
+//   val () = one2one_chan_out_write (chout, x)
+// in end
 
-  val (res_ack | ack_alt) = one2one_chan_in_2_alt (ack_in)
-  val (res_bar | bar_alt) = barrier2_2_alt (bar)
+// implement main () = let
+//   var ch: one2one_chan (int) ?
+//   val ret = one2one_chan_create_err {int} (ch)
+// in
+//   if ret = 0 then let
+//     (* Channel is created successfully. *)
+//     prval () = opt_unsome ch
+//     val+ ~one2one_pair (ch_in, ch_out) = ch
+// 
+//     (* Destroy the channel before the program exits. *)
+//     val () = read_int_chan_tsz (ch_in)
+//     val () = one2one_chan_in_destroy (ch_in)
+// 
+//     val () = write_int_chan (ch_out)
+//     val () = one2one_chan_out_destroy (ch_out)
+//   in end else let
+//     prval () = opt_unnone ch
+//   in end
+// end
 
-  val (pf_sel | ret) = alternative_2 (ack_alt, bar_alt)
+// ==================================
+fun read_int_chan (chin: !many2one_chan_in int): void = let
+  var x: int?
+  val () = many2one_chan_in_read<int> (chin, x)
+  val () = printf ("read an int: %d\n", @(x))
+in end
+
+
+fun read_int_chan_tsz (chin: !many2one_chan_in int): void = let
+  var x: int?
+  val () = many2one_chan_in_read_tsz (chin, x, sizeof<int>)
+  val () = printf ("read an int: %d\n", @(x))
+in end
+
+
+fun write_int_chan (chout: !many2one_chan_out int): void = let
+  var x: int = 0
+  val () = printf ("write an int: %d\n", @(x))
+  val () = many2one_chan_out_write (chout, x)
+in end
+
+implement main (): void = let
+  var ch: many2one_chan (int) ?
+  val ret = many2one_chan_create_err {int} (ch)
 in
   if ret = 0 then let
-    var ack: int?
-    val ack_in = alt_one2one_chan_in_read (pf_sel, res_ack | ack_alt, ack)
-    val bar = alt_2_barrier2 (res_bar | bar_alt)
+    (* Channel is created successfully. *)
+    prval () = opt_unsome ch
+    val+ ~many2one_pair (ch_in, ch_out) = ch
+  
+    (* Destroy the channel before the program exits. *)
+    val () = read_int_chan_tsz (ch_in)
+    val () = many2one_chan_in_destroy (ch_in)
 
-    val () = one2one_chan_in_destroy (ack_in)
-    val () = one2one_chan_out_destroy (ack_out)
-    val () = barrier2_unref (bar)
+    val () = write_int_chan (ch_out)
+    val () = many2one_chan_out_unref (ch_out)
   in end else let
-    val bar = alt_barrier2_sync (pf_sel, res_bar | bar_alt)
-    val ack_in = alt_2_one2one_chan_in (res_ack | ack_alt)
-
-    val () = one2one_chan_in_destroy (ack_in)
-    val () = one2one_chan_out_destroy (ack_out)
-    val () = barrier2_unref (bar)
+    prval () = opt_unnone ch
   in end
 end
-
-
   
+////
   
+    val () = read_int_chan_tsz (ch_in)
+    val () = write_int_chan (ch_out)

@@ -30,5 +30,6 @@ Description of directories
 -- demos/
    Test/Demo files for cspats library.
   
+  https://docs.google.com/document/d/1oqOrFgxI0W2neqBy6HR3j2uxl5ZugsWGs5k7DW6T1M8/edit
 
 
